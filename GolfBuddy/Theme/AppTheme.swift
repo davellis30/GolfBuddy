@@ -11,7 +11,7 @@ struct AppTheme {
     static let mutedText = Color(red: 0.45, green: 0.45, blue: 0.40)
     static let statusLooking = Color(red: 0.20, green: 0.60, blue: 0.86)
     static let statusPlaying = Color(red: 0.18, green: 0.54, blue: 0.22)
-    static let statusSeeking = Color(red: 0.90, green: 0.62, blue: 0.15)
+    static let statusSeeking = Color(red: 0.85, green: 0.18, blue: 0.18)
 
     // MARK: - Fonts
     static let titleFont = Font.system(size: 28, weight: .bold, design: .rounded)
