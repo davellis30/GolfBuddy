@@ -1,56 +1,126 @@
 import Foundation
 import Combine
 import UIKit
+import AuthenticationServices
+import CoreLocation
 
-class DataService: ObservableObject {
+class DataService: ObservableObject, @unchecked Sendable {
     static let shared = DataService()
 
     // MARK: - Published State
     @Published var currentUser: User?
     @Published var allUsers: [User] = []
     @Published var friendRequests: [FriendRequest] = []
-    @Published var friendships: [UUID: Set<UUID>] = [:] // userId -> set of friend userIds
-    @Published var weekendStatuses: [UUID: WeekendStatus] = [:] // userId -> status
-    @Published var messages: [Message] = []
-    @Published var profilePhotos: [UUID: Data] = [:]
-    @Published var appleUserMap: [String: UUID] = [:]
+    @Published var friendships: [String: Set<String>] = [:] // userId -> set of friend userIds
+    @Published var weekendStatuses: [String: WeekendStatus] = [:] // userId -> status
+    @Published var messages: [Message] = [] // kept for backward compat, but not primary source
+    @Published var profilePhotos: [String: Data] = [:]
+    @Published var conversationMetadata: [ConversationMeta] = []
+    @Published var activeConversationMessages: [Message] = []
+    @Published var nearbyCourses: [Course] = CourseService.chicagoAreaCourses
 
-    let courses: [Course] = CourseService.chicagoAreaCourses
     let allCourses: [Course] = CourseService.allCourses
 
+    private let firestoreService = FirestoreService.shared
+    private let locationService = LocationService.shared
+    private var activeConversationId: String?
+    private var locationCancellable: AnyCancellable?
+
     private init() {
-        seedDemoData()
+        locationCancellable = locationService.$userLocation
+            .compactMap { $0 }
+            .sink { [weak self] location in
+                let nearby = CourseService.nearbyCourses(from: location)
+                DispatchQueue.main.async {
+                    self?.nearbyCourses = nearby
+                }
+            }
     }
 
     // MARK: - Auth
 
-    func signUp(username: String, displayName: String, email: String) {
-        let user = User(
-            id: UUID(),
-            username: username,
-            displayName: displayName,
+    func signUp(username: String, displayName: String, email: String, password: String) async throws {
+        let user = try await FirebaseAuthService.shared.signUp(
             email: email,
-            handicap: nil,
-            homeCourse: nil
+            password: password,
+            username: username,
+            displayName: displayName
         )
-        allUsers.append(user)
-        currentUser = user
-        friendships[user.id] = []
+        await MainActor.run {
+            self.allUsers.append(user)
+            self.currentUser = user
+            self.friendships[user.id] = []
+        }
+        await startListeners()
     }
 
-    func signIn(username: String) -> Bool {
-        if let user = allUsers.first(where: { $0.username.lowercased() == username.lowercased() }) {
-            currentUser = user
-            return true
+    func signIn(email: String, password: String) async throws {
+        let user = try await FirebaseAuthService.shared.signIn(email: email, password: password)
+        await MainActor.run {
+            if !self.allUsers.contains(where: { $0.id == user.id }) {
+                self.allUsers.append(user)
+            }
+            self.currentUser = user
         }
-        return false
+        await startListeners()
+    }
+
+    func signInWithApple(credential: Any) async throws {
+        guard let appleCredential = credential as? AuthenticationServices.ASAuthorizationAppleIDCredential else {
+            throw NSError(domain: "DataService", code: -1, userInfo: [NSLocalizedDescriptionKey: "Invalid Apple credential"])
+        }
+        let user = try await FirebaseAuthService.shared.signInWithApple(credential: appleCredential)
+        await MainActor.run {
+            if !self.allUsers.contains(where: { $0.id == user.id }) {
+                self.allUsers.append(user)
+            }
+            self.currentUser = user
+            self.friendships[user.id] = self.friendships[user.id] ?? []
+        }
+        await startListeners()
     }
 
     func signOut() {
-        currentUser = nil
+        try? FirebaseAuthService.shared.signOut()
+        clearLocalState()
     }
 
-    func updateProfile(handicap: Double?, homeCourse: String?) {
+    func clearLocalState() {
+        firestoreService.removeAllListeners()
+        activeConversationId = nil
+        currentUser = nil
+        allUsers = []
+        friendRequests = []
+        friendships = [:]
+        weekendStatuses = [:]
+        messages = []
+        profilePhotos = [:]
+        conversationMetadata = []
+        activeConversationMessages = []
+    }
+
+    func deleteAccount() async throws {
+        guard let userId = currentUser?.id else { return }
+        firestoreService.removeAllListeners()
+        try await firestoreService.deleteAllUserData(userId: userId)
+        try await FirebaseAuthService.shared.deleteAccount()
+        await MainActor.run {
+            self.clearLocalState()
+        }
+    }
+
+    func loadUserProfile(firebaseUserId: String) async {
+        guard let user = try? await FirebaseAuthService.shared.loadUserProfile(firebaseUserId: firebaseUserId) else { return }
+        await MainActor.run {
+            if !self.allUsers.contains(where: { $0.id == user.id }) {
+                self.allUsers.append(user)
+            }
+            self.currentUser = user
+        }
+        await startListeners()
+    }
+
+    func updateProfile(handicap: Double?, homeCourse: String?) async throws {
         guard var user = currentUser else { return }
         user.handicap = handicap
         user.homeCourse = homeCourse
@@ -58,48 +128,76 @@ class DataService: ObservableObject {
         if let idx = allUsers.firstIndex(where: { $0.id == user.id }) {
             allUsers[idx] = user
         }
+        try await FirebaseAuthService.shared.updateUserProfile(
+            firebaseUserId: user.id,
+            handicap: handicap,
+            homeCourse: homeCourse
+        )
     }
 
-    // MARK: - Apple Auth
+    // MARK: - Listeners
 
-    func signInWithApple(appleUserId: String, email: String?, fullName: PersonNameComponents?) -> User {
-        if let existingUser = getUserByAppleId(appleUserId) {
-            currentUser = existingUser
-            return existingUser
+    func startListeners() async {
+        guard let userId = currentUser?.id else { return }
+
+        firestoreService.startFriendRequestsListener(userId: userId) { @Sendable [weak self] requests in
+            DispatchQueue.main.async {
+                self?.friendRequests = requests
+                // Fetch profiles for request senders/recipients so they render in the UI
+                let userIds = Set(requests.flatMap { [$0.fromUserId, $0.toUserId] })
+                self?.fetchMissingUserProfiles(friendIds: userIds)
+            }
         }
 
-        let displayName = [fullName?.givenName, fullName?.familyName]
-            .compactMap { $0 }
-            .joined(separator: " ")
+        firestoreService.startFriendshipsListener(userId: userId) { @Sendable [weak self] friendIds in
+            DispatchQueue.main.async {
+                guard let self = self else { return }
+                self.friendships[userId] = friendIds
+                self.startStatusesListener(friendIds: friendIds, currentUserId: userId)
+                self.fetchMissingUserProfiles(friendIds: friendIds)
+            }
+        }
 
-        let finalDisplayName = displayName.isEmpty ? "Apple User" : displayName
-        let finalEmail = email ?? ""
-        let username = "apple_\(UUID().uuidString.prefix(8))"
-
-        let user = User(
-            id: UUID(),
-            username: username,
-            displayName: finalDisplayName,
-            email: finalEmail,
-            handicap: nil,
-            homeCourse: nil
-        )
-
-        allUsers.append(user)
-        appleUserMap[appleUserId] = user.id
-        friendships[user.id] = []
-        currentUser = user
-        return user
+        firestoreService.startConversationsListener(userId: userId) { @Sendable [weak self] conversations in
+            DispatchQueue.main.async {
+                self?.conversationMetadata = conversations
+                // Fetch user profiles for conversation partners
+                let partnerIds = Set(conversations.compactMap { $0.partnerId(currentUserId: userId) })
+                self?.fetchMissingUserProfiles(friendIds: partnerIds)
+            }
+        }
     }
 
-    func getUserByAppleId(_ appleUserId: String) -> User? {
-        guard let userId = appleUserMap[appleUserId] else { return nil }
-        return allUsers.first(where: { $0.id == userId })
+    private func startStatusesListener(friendIds: Set<String>, currentUserId: String) {
+        var ids = Array(friendIds)
+        ids.append(currentUserId)
+        firestoreService.startStatusesListener(userIds: ids) { @Sendable [weak self] statuses in
+            DispatchQueue.main.async {
+                self?.weekendStatuses = statuses
+            }
+        }
+    }
+
+    private func fetchMissingUserProfiles(friendIds: Set<String>) {
+        let missing = friendIds.filter { id in
+            !allUsers.contains(where: { $0.id == id })
+        }
+        for userId in missing {
+            Task {
+                if let user = try? await firestoreService.fetchUser(userId: userId) {
+                    await MainActor.run {
+                        if !self.allUsers.contains(where: { $0.id == user.id }) {
+                            self.allUsers.append(user)
+                        }
+                    }
+                }
+            }
+        }
     }
 
     // MARK: - Profile Photos
 
-    func setProfilePhoto(for userId: UUID, imageData: Data?) {
+    func setProfilePhoto(for userId: String, imageData: Data?) {
         if let data = imageData {
             profilePhotos[userId] = processProfileImage(data)
         } else {
@@ -121,7 +219,7 @@ class DataService: ObservableObject {
 
     // MARK: - Friends
 
-    func sendFriendRequest(to userId: UUID) {
+    func sendFriendRequest(to userId: String) {
         guard let currentId = currentUser?.id else { return }
         let existing = friendRequests.first {
             ($0.fromUserId == currentId && $0.toUserId == userId) ||
@@ -132,28 +230,64 @@ class DataService: ObservableObject {
 
         let request = FriendRequest(fromUserId: currentId, toUserId: userId)
         friendRequests.append(request)
+
+        Task {
+            do {
+                _ = try await firestoreService.sendFriendRequest(from: currentId, to: userId)
+            } catch {
+                await MainActor.run {
+                    self.friendRequests.removeAll { $0.id == request.id }
+                }
+                print("[DataService] Failed to send friend request: \(error)")
+            }
+        }
     }
 
     func acceptFriendRequest(_ request: FriendRequest) {
-        guard let idx = friendRequests.firstIndex(where: { $0.id == request.id }) else { return }
-        friendRequests[idx].status = .accepted
-
+        if let idx = friendRequests.firstIndex(where: { $0.id == request.id }) {
+            friendRequests[idx].status = .accepted
+        }
         friendships[request.fromUserId, default: []].insert(request.toUserId)
         friendships[request.toUserId, default: []].insert(request.fromUserId)
+
+        Task {
+            do {
+                try await firestoreService.acceptFriendRequest(request)
+            } catch {
+                print("[DataService] Failed to accept friend request: \(error)")
+            }
+        }
     }
 
     func declineFriendRequest(_ request: FriendRequest) {
-        guard let idx = friendRequests.firstIndex(where: { $0.id == request.id }) else { return }
-        friendRequests[idx].status = .declined
+        if let idx = friendRequests.firstIndex(where: { $0.id == request.id }) {
+            friendRequests[idx].status = .declined
+        }
+
+        Task {
+            do {
+                try await firestoreService.declineFriendRequest(request.id)
+            } catch {
+                print("[DataService] Failed to decline friend request: \(error)")
+            }
+        }
     }
 
-    func removeFriend(_ friendId: UUID) {
+    func removeFriend(_ friendId: String) {
         guard let currentId = currentUser?.id else { return }
         friendships[currentId]?.remove(friendId)
         friendships[friendId]?.remove(currentId)
+
+        Task {
+            do {
+                try await firestoreService.removeFriendship(userId: currentId, friendId: friendId)
+            } catch {
+                print("[DataService] Failed to remove friend: \(error)")
+            }
+        }
     }
 
-    func friends(of userId: UUID) -> [User] {
+    func friends(of userId: String) -> [User] {
         let friendIds = friendships[userId] ?? []
         return allUsers.filter { friendIds.contains($0.id) }
     }
@@ -168,12 +302,12 @@ class DataService: ObservableObject {
         return friendRequests.filter { $0.fromUserId == currentId && $0.status == .pending }
     }
 
-    func isFriend(_ userId: UUID) -> Bool {
+    func isFriend(_ userId: String) -> Bool {
         guard let currentId = currentUser?.id else { return false }
         return friendships[currentId]?.contains(userId) ?? false
     }
 
-    func hasPendingRequest(with userId: UUID) -> Bool {
+    func hasPendingRequest(with userId: String) -> Bool {
         guard let currentId = currentUser?.id else { return false }
         return friendRequests.contains {
             $0.status == .pending &&
@@ -182,13 +316,14 @@ class DataService: ObservableObject {
         }
     }
 
-    func searchUsers(query: String) -> [User] {
+    func searchUsers(query: String) async -> [User] {
         guard let currentId = currentUser?.id else { return [] }
-        let lowered = query.lowercased()
-        return allUsers.filter {
-            $0.id != currentId &&
-            ($0.username.lowercased().contains(lowered) ||
-             $0.displayName.lowercased().contains(lowered))
+        guard !query.isEmpty else { return [] }
+        do {
+            return try await firestoreService.searchUsers(query: query, excludingUserId: currentId)
+        } catch {
+            print("[DataService] Search failed: \(error)")
+            return []
         }
     }
 
@@ -199,7 +334,7 @@ class DataService: ObservableObject {
         isVisible: Bool,
         shareDetails: Bool,
         courseName: String?,
-        playingWith: [UUID],
+        playingWith: [String],
         timeSlots: [DayTimeSlot] = [],
         preferredTimeSlot: DayTimeSlot? = nil
     ) {
@@ -215,11 +350,27 @@ class DataService: ObservableObject {
             preferredTimeSlot: preferredTimeSlot
         )
         weekendStatuses[currentId] = status
+
+        Task {
+            do {
+                try await firestoreService.setWeekendStatus(status)
+            } catch {
+                print("[DataService] Failed to set weekend status: \(error)")
+            }
+        }
     }
 
     func clearWeekendStatus() {
         guard let currentId = currentUser?.id else { return }
         weekendStatuses.removeValue(forKey: currentId)
+
+        Task {
+            do {
+                try await firestoreService.clearWeekendStatus(userId: currentId)
+            } catch {
+                print("[DataService] Failed to clear weekend status: \(error)")
+            }
+        }
     }
 
     func visibleFriendStatuses() -> [(User, WeekendStatus)] {
@@ -235,105 +386,73 @@ class DataService: ObservableObject {
         return results.sorted { $0.1.availability.rawValue < $1.1.availability.rawValue }
     }
 
-    func userName(for id: UUID) -> String {
+    func userName(for id: String) -> String {
         allUsers.first(where: { $0.id == id })?.displayName ?? "Unknown"
     }
 
     // MARK: - Messages
 
-    func sendMessage(to userId: UUID, text: String) {
+    func openConversation(with userId: String) {
+        guard let currentId = currentUser?.id else { return }
+        let convoId = FirestoreService.canonicalId(currentId, userId)
+        activeConversationId = convoId
+
+        firestoreService.startMessagesListener(conversationId: convoId) { @Sendable [weak self] messages in
+            DispatchQueue.main.async {
+                self?.activeConversationMessages = messages
+            }
+        }
+
+        markMessagesAsRead(from: userId)
+    }
+
+    func closeConversation() {
+        if let convoId = activeConversationId {
+            firestoreService.removeListener(named: "messages-\(convoId)")
+        }
+        activeConversationId = nil
+        activeConversationMessages = []
+    }
+
+    func sendMessage(to userId: String, text: String) {
         guard let currentId = currentUser?.id else { return }
         let message = Message(senderId: currentId, receiverId: userId, text: text)
-        messages.append(message)
-    }
+        activeConversationMessages.append(message)
 
-    func messages(with userId: UUID) -> [Message] {
-        guard let currentId = currentUser?.id else { return [] }
-        return messages.filter {
-            ($0.senderId == currentId && $0.receiverId == userId) ||
-            ($0.senderId == userId && $0.receiverId == currentId)
-        }.sorted { $0.timestamp < $1.timestamp }
-    }
-
-    func unreadCount(from userId: UUID) -> Int {
-        guard let currentId = currentUser?.id else { return 0 }
-        return messages.filter {
-            $0.senderId == userId && $0.receiverId == currentId && !$0.isRead
-        }.count
-    }
-
-    func markMessagesAsRead(from userId: UUID) {
-        guard let currentId = currentUser?.id else { return }
-        for i in messages.indices {
-            if messages[i].senderId == userId && messages[i].receiverId == currentId && !messages[i].isRead {
-                messages[i].isRead = true
+        Task {
+            do {
+                try await firestoreService.sendMessage(from: currentId, to: userId, text: text)
+            } catch {
+                print("[DataService] Failed to send message: \(error)")
             }
         }
     }
 
-    // MARK: - Demo Data
+    func messages(with userId: String) -> [Message] {
+        return activeConversationMessages
+    }
 
-    private func seedDemoData() {
-        let demo1 = User(id: UUID(), username: "mikej", displayName: "Mike Johnson", email: "mike@example.com", handicap: 12.4, homeCourse: "Jackson Park Golf Course")
-        let demo2 = User(id: UUID(), username: "sarahw", displayName: "Sarah Williams", email: "sarah@example.com", handicap: 8.1, homeCourse: "Harborside International Golf Center")
-        let demo3 = User(id: UUID(), username: "davepark", displayName: "Dave Parker", email: "dave@example.com", handicap: 18.5, homeCourse: "Sydney R. Marovitz Golf Course")
-        let demo4 = User(id: UUID(), username: "lisam", displayName: "Lisa Martinez", email: "lisa@example.com", handicap: 15.0, homeCourse: "Indian Boundary Golf Course")
-        let demo5 = User(id: UUID(), username: "tomk", displayName: "Tom Kim", email: "tom@example.com", handicap: 5.2, homeCourse: "Cog Hill Golf & Country Club (Course 1)")
-        let demo6 = User(id: UUID(), username: "jennyr", displayName: "Jenny Rodriguez", email: "jenny@example.com", handicap: 22.0, homeCourse: nil)
+    func unreadCount(from userId: String) -> Int {
+        guard let currentId = currentUser?.id else { return 0 }
+        let convoId = FirestoreService.canonicalId(currentId, userId)
+        return conversationMetadata.first(where: { $0.id == convoId })?.unreadCount ?? 0
+    }
 
-        allUsers = [demo1, demo2, demo3, demo4, demo5, demo6]
+    func markMessagesAsRead(from userId: String) {
+        guard let currentId = currentUser?.id else { return }
+        let convoId = FirestoreService.canonicalId(currentId, userId)
 
-        // Pre-build some friendships between demo users
-        friendships[demo1.id] = [demo2.id, demo3.id, demo5.id]
-        friendships[demo2.id] = [demo1.id, demo3.id, demo4.id]
-        friendships[demo3.id] = [demo1.id, demo2.id]
-        friendships[demo4.id] = [demo2.id]
-        friendships[demo5.id] = [demo1.id]
-        friendships[demo6.id] = []
+        // Update local metadata
+        if let idx = conversationMetadata.firstIndex(where: { $0.id == convoId }) {
+            conversationMetadata[idx].unreadCount = 0
+        }
 
-        // Some demo statuses
-        weekendStatuses[demo1.id] = WeekendStatus(
-            userId: demo1.id,
-            availability: .lookingToPlay,
-            isVisible: true,
-            shareDetails: false,
-            timeSlots: [DayTimeSlot(day: .saturday, time: .am)],
-            preferredTimeSlot: DayTimeSlot(day: .saturday, time: .am)
-        )
-        weekendStatuses[demo2.id] = WeekendStatus(
-            userId: demo2.id,
-            availability: .alreadyPlaying,
-            isVisible: true,
-            shareDetails: true,
-            courseName: "Harborside International Golf Center",
-            playingWith: [demo4.id],
-            timeSlots: [DayTimeSlot(day: .sunday, time: .pm)]
-        )
-        weekendStatuses[demo3.id] = WeekendStatus(
-            userId: demo3.id,
-            availability: .seekingAdditional,
-            isVisible: true,
-            shareDetails: true,
-            courseName: "Sydney R. Marovitz Golf Course",
-            playingWith: [],
-            timeSlots: [DayTimeSlot(day: .saturday, time: .am), DayTimeSlot(day: .saturday, time: .pm)],
-            preferredTimeSlot: DayTimeSlot(day: .saturday, time: .am)
-        )
-        weekendStatuses[demo5.id] = WeekendStatus(
-            userId: demo5.id,
-            availability: .alreadyPlaying,
-            isVisible: false, // hidden
-            shareDetails: false
-        )
-
-        // Demo messages (will be visible once a user logs in as demo1/mikej)
-        let now = Date()
-        messages = [
-            Message(senderId: demo1.id, receiverId: demo2.id, text: "Hey Sarah, are you playing this weekend?", timestamp: now.addingTimeInterval(-7200), isRead: true),
-            Message(senderId: demo2.id, receiverId: demo1.id, text: "Yes! Thinking about Harborside. Want to join?", timestamp: now.addingTimeInterval(-6800), isRead: true),
-            Message(senderId: demo1.id, receiverId: demo2.id, text: "Sounds great! What time are you thinking?", timestamp: now.addingTimeInterval(-6400), isRead: true),
-            Message(senderId: demo2.id, receiverId: demo1.id, text: "How about 8am tee time?", timestamp: now.addingTimeInterval(-3600), isRead: false),
-            Message(senderId: demo3.id, receiverId: demo1.id, text: "Mike, need a 4th for Saturday at Marovitz. You in?", timestamp: now.addingTimeInterval(-1800), isRead: false),
-        ]
+        Task {
+            do {
+                try await firestoreService.markMessagesAsRead(conversationId: convoId, userId: currentId)
+            } catch {
+                print("[DataService] Failed to mark messages as read: \(error)")
+            }
+        }
     }
 }

@@ -64,10 +64,10 @@ class ContactsService {
 
     func matchContacts(against users: [User]) -> (matched: [User], unmatched: [UnmatchedContact]) {
         let contacts = fetchContacts()
-        let userEmailMap = Dictionary(uniqueKeysWithValues: users.map { ($0.email.lowercased(), $0) })
+        let userEmailMap = Dictionary(users.map { ($0.email.lowercased(), $0) }, uniquingKeysWith: { first, _ in first })
 
         var matched: [User] = []
-        var matchedIds: Set<UUID> = []
+        var matchedIds: Set<String> = []
         var unmatched: [UnmatchedContact] = []
 
         for contact in contacts {

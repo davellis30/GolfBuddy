@@ -10,7 +10,7 @@ struct ConversationView: View {
             ScrollViewReader { proxy in
                 ScrollView {
                     LazyVStack(spacing: 8) {
-                        ForEach(dataService.messages(with: friend.id)) { message in
+                        ForEach(dataService.activeConversationMessages) { message in
                             MessageBubble(
                                 message: message,
                                 isSent: message.senderId == dataService.currentUser?.id
@@ -22,10 +22,13 @@ struct ConversationView: View {
                     .padding(.vertical, 12)
                 }
                 .onAppear {
-                    dataService.markMessagesAsRead(from: friend.id)
+                    dataService.openConversation(with: friend.id)
                     scrollToBottom(proxy: proxy)
                 }
-                .onChange(of: dataService.messages.count) {
+                .onDisappear {
+                    dataService.closeConversation()
+                }
+                .onChange(of: dataService.activeConversationMessages.count) {
                     scrollToBottom(proxy: proxy)
                 }
             }
@@ -67,8 +70,7 @@ struct ConversationView: View {
     }
 
     private func scrollToBottom(proxy: ScrollViewProxy) {
-        let conversation = dataService.messages(with: friend.id)
-        if let last = conversation.last {
+        if let last = dataService.activeConversationMessages.last {
             withAnimation(.easeOut(duration: 0.2)) {
                 proxy.scrollTo(last.id, anchor: .bottom)
             }

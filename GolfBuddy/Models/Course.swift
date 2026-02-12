@@ -2,7 +2,7 @@ import Foundation
 import CoreLocation
 
 struct Course: Identifiable, Codable, Hashable {
-    let id: UUID
+    let id: String
     let name: String
     let address: String
     let city: String
@@ -16,6 +16,15 @@ struct Course: Identifiable, Codable, Hashable {
 
     var formattedDistance: String {
         String(format: "%.1f mi", distanceFromChicago)
+    }
+
+    func distance(from location: CLLocation) -> Double {
+        let courseLocation = CLLocation(latitude: latitude, longitude: longitude)
+        return location.distance(from: courseLocation) / 1609.344
+    }
+
+    func formattedDistance(from location: CLLocation) -> String {
+        String(format: "%.1f mi", distance(from: location))
     }
 
     var fullAddress: String {

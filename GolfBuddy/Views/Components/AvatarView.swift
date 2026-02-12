@@ -2,7 +2,7 @@ import SwiftUI
 
 struct AvatarView: View {
     @EnvironmentObject var dataService: DataService
-    let userId: UUID
+    let userId: String
     var size: CGFloat = 48
 
     var body: some View {

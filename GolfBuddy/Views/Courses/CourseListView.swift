@@ -1,19 +1,28 @@
 import SwiftUI
+import CoreLocation
 
 struct CourseListView: View {
     @EnvironmentObject var dataService: DataService
+    @ObservedObject private var locationService = LocationService.shared
     @State private var searchText = ""
     @State private var selectedCourse: Course?
 
     var filteredCourses: [Course] {
         if searchText.isEmpty {
-            return dataService.courses
+            return dataService.nearbyCourses
         }
         let lowered = searchText.lowercased()
-        return dataService.courses.filter {
+        return dataService.nearbyCourses.filter {
             $0.name.lowercased().contains(lowered) ||
             $0.city.lowercased().contains(lowered)
         }
+    }
+
+    private var headerText: String {
+        if locationService.userLocation != nil {
+            return "Courses within 30 mi"
+        }
+        return "Courses within 30 mi of Chicago"
     }
 
     var body: some View {
@@ -22,6 +31,48 @@ struct CourseListView: View {
                 AppTheme.cream.ignoresSafeArea()
 
                 VStack(spacing: 0) {
+                    // Location banner
+                    if locationService.authorizationStatus == .notDetermined {
+                        Button {
+                            locationService.requestWhenInUsePermission()
+                        } label: {
+                            HStack(spacing: 8) {
+                                Image(systemName: "location.fill")
+                                    .font(.system(size: 14))
+                                Text("Enable location for courses near you")
+                                    .font(AppTheme.captionFont.weight(.medium))
+                                Spacer()
+                                Image(systemName: "chevron.right")
+                                    .font(.system(size: 11))
+                            }
+                            .foregroundColor(.white)
+                            .padding(12)
+                            .background(
+                                RoundedRectangle(cornerRadius: 10)
+                                    .fill(AppTheme.accentGreen)
+                            )
+                            .padding(.horizontal, 20)
+                            .padding(.top, 8)
+                        }
+                    } else if locationService.authorizationStatus == .denied || locationService.authorizationStatus == .restricted {
+                        HStack(spacing: 8) {
+                            Image(systemName: "location.slash.fill")
+                                .font(.system(size: 14))
+                            Text("Enable location in Settings for courses near you")
+                                .font(AppTheme.captionFont)
+                            Spacer()
+                        }
+                        .foregroundColor(AppTheme.mutedText)
+                        .padding(12)
+                        .background(
+                            RoundedRectangle(cornerRadius: 10)
+                                .fill(Color.white)
+                                .shadow(color: Color.black.opacity(0.04), radius: 4, x: 0, y: 2)
+                        )
+                        .padding(.horizontal, 20)
+                        .padding(.top, 8)
+                    }
+
                     // Search
                     HStack(spacing: 12) {
                         Image(systemName: "magnifyingglass")
@@ -46,7 +97,7 @@ struct CourseListView: View {
 
                     // Header info
                     HStack {
-                        Text("Public Courses within 30 mi of Chicago")
+                        Text(headerText)
                             .font(AppTheme.captionFont)
                             .foregroundColor(AppTheme.mutedText)
                         Spacer()
@@ -61,7 +112,7 @@ struct CourseListView: View {
                     ScrollView {
                         LazyVStack(spacing: 10) {
                             ForEach(filteredCourses) { course in
-                                CourseRow(course: course)
+                                CourseRow(course: course, userLocation: locationService.userLocation)
                                     .onTapGesture { selectedCourse = course }
                             }
                         }
@@ -74,7 +125,7 @@ struct CourseListView: View {
             .navigationTitle("Courses")
             .navigationBarTitleDisplayMode(.inline)
             .sheet(item: $selectedCourse) { course in
-                CourseDetailSheet(course: course)
+                CourseDetailSheet(course: course, userLocation: locationService.userLocation)
             }
         }
     }
@@ -82,6 +133,14 @@ struct CourseListView: View {
 
 struct CourseRow: View {
     let course: Course
+    var userLocation: CLLocation?
+
+    private var displayDistance: String {
+        if let location = userLocation {
+            return course.formattedDistance(from: location)
+        }
+        return course.formattedDistance
+    }
 
     var body: some View {
         HStack(spacing: 14) {
@@ -114,7 +173,7 @@ struct CourseRow: View {
             Spacer()
 
             VStack(alignment: .trailing, spacing: 2) {
-                Text(course.formattedDistance)
+                Text(displayDistance)
                     .font(.system(size: 13, weight: .bold, design: .rounded))
                     .foregroundColor(AppTheme.accentGreen)
                 Image(systemName: "chevron.right")
@@ -128,7 +187,15 @@ struct CourseRow: View {
 
 struct CourseDetailSheet: View {
     let course: Course
+    var userLocation: CLLocation?
     @Environment(\.dismiss) private var dismiss
+
+    private var distanceLabel: String {
+        if let location = userLocation {
+            return course.formattedDistance(from: location)
+        }
+        return course.formattedDistance + " from Chicago"
+    }
 
     var body: some View {
         NavigationStack {
@@ -174,7 +241,7 @@ struct CourseDetailSheet: View {
                             Divider()
                             DetailRow(icon: "flag.fill", label: "Par", value: "\(course.par)")
                             Divider()
-                            DetailRow(icon: "location.fill", label: "Distance", value: course.formattedDistance + " from Chicago")
+                            DetailRow(icon: "location.fill", label: "Distance", value: distanceLabel)
                         }
                         .cardStyle()
                         .padding(.horizontal, 20)

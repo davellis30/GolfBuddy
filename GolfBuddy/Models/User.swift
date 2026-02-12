@@ -1,7 +1,7 @@
 import Foundation
 
 struct User: Identifiable, Codable, Hashable {
-    let id: UUID
+    let id: String
     var username: String
     var displayName: String
     var email: String
@@ -21,5 +21,17 @@ struct User: Identifiable, Codable, Hashable {
 
     func hash(into hasher: inout Hasher) {
         hasher.combine(id)
+    }
+}
+
+extension User {
+    init?(fromFirestore data: [String: Any]) {
+        guard let id = data["id"] as? String else { return nil }
+        self.id = id
+        self.username = data["username"] as? String ?? ""
+        self.displayName = data["displayName"] as? String ?? ""
+        self.email = data["email"] as? String ?? ""
+        self.handicap = data["handicap"] as? Double
+        self.homeCourse = data["homeCourse"] as? String
     }
 }

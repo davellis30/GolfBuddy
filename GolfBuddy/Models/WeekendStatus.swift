@@ -1,5 +1,6 @@
 import Foundation
 import SwiftUI
+import FirebaseFirestore
 
 enum WeekendDay: String, Codable, CaseIterable {
     case saturday, sunday
@@ -37,6 +38,24 @@ struct DayTimeSlot: Codable, Hashable {
         DayTimeSlot(day: .sunday, time: .am),
         DayTimeSlot(day: .sunday, time: .pm)
     ]
+
+    func toFirestoreMap() -> [String: String] {
+        ["day": day.rawValue, "time": time.rawValue]
+    }
+
+    init?(fromFirestore map: [String: Any]) {
+        guard let dayRaw = map["day"] as? String,
+              let day = WeekendDay(rawValue: dayRaw),
+              let timeRaw = map["time"] as? String,
+              let time = DayTime(rawValue: timeRaw) else { return nil }
+        self.day = day
+        self.time = time
+    }
+
+    init(day: WeekendDay, time: DayTime) {
+        self.day = day
+        self.time = time
+    }
 }
 
 enum WeekendAvailability: String, Codable, CaseIterable {
@@ -70,13 +89,13 @@ enum WeekendAvailability: String, Codable, CaseIterable {
 }
 
 struct WeekendStatus: Identifiable, Codable {
-    let id: UUID
-    let userId: UUID
+    let id: String
+    let userId: String
     var availability: WeekendAvailability
     var isVisible: Bool
     var shareDetails: Bool
     var courseName: String?
-    var playingWith: [UUID]
+    var playingWith: [String]
     var timeSlots: [DayTimeSlot]
     var preferredTimeSlot: DayTimeSlot?
     var weekendDate: Date
@@ -86,13 +105,13 @@ struct WeekendStatus: Identifiable, Codable {
     }
 
     init(
-        id: UUID = UUID(),
-        userId: UUID,
+        id: String = UUID().uuidString,
+        userId: String,
         availability: WeekendAvailability,
         isVisible: Bool = true,
         shareDetails: Bool = false,
         courseName: String? = nil,
-        playingWith: [UUID] = [],
+        playingWith: [String] = [],
         timeSlots: [DayTimeSlot] = [],
         preferredTimeSlot: DayTimeSlot? = nil,
         weekendDate: Date = WeekendStatus.nextWeekend()
@@ -125,5 +144,45 @@ struct WeekendStatus: Identifiable, Codable {
         let saturday = nextWeekend()
         let sunday = Calendar.current.date(byAdding: .day, value: 1, to: saturday)!
         return "\(formatter.string(from: saturday)) - \(formatter.string(from: sunday))"
+    }
+
+    func toFirestoreData() -> [String: Any] {
+        var data: [String: Any] = [
+            "id": id,
+            "userId": userId,
+            "availability": availability.rawValue,
+            "isVisible": isVisible,
+            "shareDetails": shareDetails,
+            "playingWith": playingWith,
+            "timeSlots": timeSlots.map { $0.toFirestoreMap() },
+            "weekendDate": Timestamp(date: weekendDate),
+            "updatedAt": FieldValue.serverTimestamp()
+        ]
+        if let courseName = courseName { data["courseName"] = courseName }
+        if let preferredTimeSlot = preferredTimeSlot {
+            data["preferredTimeSlot"] = preferredTimeSlot.toFirestoreMap()
+        }
+        return data
+    }
+
+    init?(fromFirestore data: [String: Any]) {
+        guard let id = data["id"] as? String,
+              let userId = data["userId"] as? String,
+              let availabilityRaw = data["availability"] as? String,
+              let availability = WeekendAvailability(rawValue: availabilityRaw) else { return nil }
+        self.id = id
+        self.userId = userId
+        self.availability = availability
+        self.isVisible = data["isVisible"] as? Bool ?? true
+        self.shareDetails = data["shareDetails"] as? Bool ?? false
+        self.courseName = data["courseName"] as? String
+        self.playingWith = data["playingWith"] as? [String] ?? []
+        self.timeSlots = (data["timeSlots"] as? [[String: Any]])?.compactMap { DayTimeSlot(fromFirestore: $0) } ?? []
+        if let prefMap = data["preferredTimeSlot"] as? [String: Any] {
+            self.preferredTimeSlot = DayTimeSlot(fromFirestore: prefMap)
+        } else {
+            self.preferredTimeSlot = nil
+        }
+        self.weekendDate = (data["weekendDate"] as? Timestamp)?.dateValue() ?? Date()
     }
 }

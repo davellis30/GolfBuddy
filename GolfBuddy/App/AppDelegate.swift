@@ -1,5 +1,6 @@
 import UIKit
 import UserNotifications
+import FirebaseCore
 
 class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDelegate {
 
@@ -7,6 +8,7 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
         _ application: UIApplication,
         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
     ) -> Bool {
+        FirebaseApp.configure()
         UNUserNotificationCenter.current().delegate = self
         return true
     }
@@ -44,7 +46,6 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
     ) {
         let identifier = response.notification.request.identifier
         print("[AppDelegate] Notification tapped: \(identifier)")
-        // TODO: Navigate to relevant view based on notification type
         completionHandler()
     }
 }

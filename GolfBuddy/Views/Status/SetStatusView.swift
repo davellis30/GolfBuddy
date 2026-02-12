@@ -8,7 +8,7 @@ struct SetStatusView: View {
     @State private var isVisible = true
     @State private var shareDetails = false
     @State private var selectedCourse: String = ""
-    @State private var selectedPlayingWith: Set<UUID> = []
+    @State private var selectedPlayingWith: Set<String> = []
     @State private var selectedTimeSlots: Set<DayTimeSlot> = []
     @State private var preferredTimeSlot: DayTimeSlot? = nil
 
@@ -191,7 +191,7 @@ struct SetStatusView: View {
 
                                 Menu {
                                     Button("None selected") { selectedCourse = "" }
-                                    ForEach(dataService.courses) { course in
+                                    ForEach(dataService.nearbyCourses) { course in
                                         Button("\(course.name) (\(course.formattedDistance))") {
                                             selectedCourse = course.name
                                         }
@@ -260,7 +260,7 @@ struct SetStatusView: View {
                             }
                             .buttonStyle(GreenButtonStyle())
 
-                            if dataService.weekendStatuses[dataService.currentUser?.id ?? UUID()] != nil {
+                            if dataService.weekendStatuses[dataService.currentUser?.id ?? ""] != nil {
                                 Button("Clear Status") {
                                     dataService.clearWeekendStatus()
                                     dismiss()

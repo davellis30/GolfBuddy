@@ -7,8 +7,10 @@ struct LoginView: View {
     @State private var username = ""
     @State private var displayName = ""
     @State private var email = ""
+    @State private var password = ""
     @State private var showError = false
     @State private var errorMessage = ""
+    @State private var isLoading = false
 
     var body: some View {
         ZStack {
@@ -42,22 +44,30 @@ struct LoginView: View {
                     VStack(spacing: 16) {
                         if isSignUp {
                             FormField(icon: "person.fill", placeholder: "Display Name", text: $displayName)
-                            FormField(icon: "envelope.fill", placeholder: "Email", text: $email)
+                            FormField(icon: "at", placeholder: "Username", text: $username)
                                 .textInputAutocapitalization(.never)
-                                .keyboardType(.emailAddress)
                         }
 
-                        FormField(icon: "at", placeholder: "Username", text: $username)
+                        FormField(icon: "envelope.fill", placeholder: "Email", text: $email)
                             .textInputAutocapitalization(.never)
+                            .keyboardType(.emailAddress)
+
+                        FormField(icon: "lock.fill", placeholder: "Password", text: $password, isSecure: true)
                     }
                     .padding(.horizontal, 24)
 
                     // Actions
                     VStack(spacing: 14) {
                         Button(action: handleSubmit) {
-                            Text(isSignUp ? "Create Account" : "Sign In")
+                            if isLoading {
+                                ProgressView()
+                                    .tint(.white)
+                            } else {
+                                Text(isSignUp ? "Create Account" : "Sign In")
+                            }
                         }
                         .buttonStyle(GreenButtonStyle())
+                        .disabled(isLoading)
 
                         Button(action: { withAnimation { isSignUp.toggle() } }) {
                             Text(isSignUp ? "Already have an account? Sign In" : "Don't have an account? Sign Up")
@@ -87,34 +97,6 @@ struct LoginView: View {
                     }
                     .padding(.horizontal, 24)
 
-                    if !isSignUp {
-                        VStack(spacing: 8) {
-                            Text("Demo Accounts")
-                                .font(AppTheme.captionFont)
-                                .foregroundColor(AppTheme.mutedText)
-
-                            HStack(spacing: 8) {
-                                ForEach(["mikej", "sarahw", "davepark"], id: \.self) { name in
-                                    Button(action: {
-                                        username = name
-                                        handleSubmit()
-                                    }) {
-                                        Text("@\(name)")
-                                            .font(.system(size: 12, weight: .medium, design: .monospaced))
-                                            .foregroundColor(AppTheme.accentGreen)
-                                            .padding(.horizontal, 12)
-                                            .padding(.vertical, 6)
-                                            .background(
-                                                Capsule()
-                                                    .stroke(AppTheme.accentGreen, lineWidth: 1)
-                                            )
-                                    }
-                                }
-                            }
-                        }
-                        .padding(.top, 8)
-                    }
-
                     Spacer()
                 }
             }
@@ -134,12 +116,20 @@ struct LoginView: View {
                 showError = true
                 return
             }
-            let _ = dataService.signInWithApple(
-                appleUserId: credential.user,
-                email: credential.email,
-                fullName: credential.fullName
-            )
-            AppleAuthService.shared.saveAppleId(credential.user)
+            isLoading = true
+            Task {
+                do {
+                    try await dataService.signInWithApple(credential: credential)
+                } catch {
+                    await MainActor.run {
+                        errorMessage = "Apple Sign In failed: \(error.localizedDescription)"
+                        showError = true
+                    }
+                }
+                await MainActor.run {
+                    isLoading = false
+                }
+            }
 
         case .failure(let error):
             if let authError = error as? ASAuthorizationError, authError.code == .canceled {
@@ -151,22 +141,43 @@ struct LoginView: View {
     }
 
     private func handleSubmit() {
-        if isSignUp {
-            guard !username.isEmpty, !displayName.isEmpty, !email.isEmpty else {
-                errorMessage = "Please fill in all fields."
-                showError = true
-                return
+        isLoading = true
+        Task {
+            do {
+                if isSignUp {
+                    guard !username.isEmpty, !displayName.isEmpty, !email.isEmpty, !password.isEmpty else {
+                        await MainActor.run {
+                            errorMessage = "Please fill in all fields."
+                            showError = true
+                            isLoading = false
+                        }
+                        return
+                    }
+                    try await dataService.signUp(
+                        username: username,
+                        displayName: displayName,
+                        email: email,
+                        password: password
+                    )
+                } else {
+                    guard !email.isEmpty, !password.isEmpty else {
+                        await MainActor.run {
+                            errorMessage = "Please enter your email and password."
+                            showError = true
+                            isLoading = false
+                        }
+                        return
+                    }
+                    try await dataService.signIn(email: email, password: password)
+                }
+            } catch {
+                await MainActor.run {
+                    errorMessage = error.localizedDescription
+                    showError = true
+                }
             }
-            dataService.signUp(username: username, displayName: displayName, email: email)
-        } else {
-            guard !username.isEmpty else {
-                errorMessage = "Please enter your username."
-                showError = true
-                return
-            }
-            if !dataService.signIn(username: username) {
-                errorMessage = "Username not found. Try a demo account or sign up."
-                showError = true
+            await MainActor.run {
+                isLoading = false
             }
         }
     }
@@ -176,14 +187,22 @@ struct FormField: View {
     let icon: String
     let placeholder: String
     @Binding var text: String
+    var isSecure: Bool = false
 
     var body: some View {
         HStack(spacing: 12) {
             Image(systemName: icon)
                 .foregroundColor(AppTheme.accentGreen)
                 .frame(width: 20)
-            TextField(placeholder, text: $text)
-                .font(AppTheme.bodyFont)
+            if isSecure {
+                SecureField(placeholder, text: $text)
+                    .font(AppTheme.bodyFont)
+                    .foregroundColor(AppTheme.darkText)
+            } else {
+                TextField(placeholder, text: $text)
+                    .font(AppTheme.bodyFont)
+                    .foregroundColor(AppTheme.darkText)
+            }
         }
         .padding(14)
         .background(

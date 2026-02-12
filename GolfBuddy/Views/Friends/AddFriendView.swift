@@ -4,6 +4,8 @@ struct AddFriendView: View {
     @EnvironmentObject var dataService: DataService
     @Environment(\.dismiss) private var dismiss
     @State private var searchText = ""
+    @State private var searchResults: [User] = []
+    @State private var isSearching = false
     @State private var showFindContacts = false
 
     var body: some View {
@@ -43,8 +45,14 @@ struct AddFriendView: View {
                         TextField("Search by name or username", text: $searchText)
                             .font(AppTheme.bodyFont)
                             .textInputAutocapitalization(.never)
-                        if !searchText.isEmpty {
-                            Button(action: { searchText = "" }) {
+                        if isSearching {
+                            ProgressView()
+                                .scaleEffect(0.8)
+                        } else if !searchText.isEmpty {
+                            Button(action: {
+                                searchText = ""
+                                searchResults = []
+                            }) {
                                 Image(systemName: "xmark.circle.fill")
                                     .foregroundColor(AppTheme.mutedText)
                             }
@@ -63,8 +71,7 @@ struct AddFriendView: View {
                     ScrollView {
                         LazyVStack(spacing: 10) {
                             if searchText.count >= 2 {
-                                let results = dataService.searchUsers(query: searchText)
-                                if results.isEmpty {
+                                if searchResults.isEmpty && !isSearching {
                                     VStack(spacing: 10) {
                                         Image(systemName: "person.slash")
                                             .font(.system(size: 36))
@@ -75,7 +82,7 @@ struct AddFriendView: View {
                                     }
                                     .padding(.top, 40)
                                 } else {
-                                    ForEach(results) { user in
+                                    ForEach(searchResults) { user in
                                         SearchResultRow(user: user)
                                     }
                                 }
@@ -107,6 +114,22 @@ struct AddFriendView: View {
             .sheet(isPresented: $showFindContacts) {
                 FindContactsView()
                     .environmentObject(dataService)
+            }
+            .onChange(of: searchText) { _, newValue in
+                guard newValue.count >= 2 else {
+                    searchResults = []
+                    return
+                }
+                isSearching = true
+                Task {
+                    let results = await dataService.searchUsers(query: newValue)
+                    await MainActor.run {
+                        if searchText == newValue {
+                            searchResults = results
+                        }
+                        isSearching = false
+                    }
+                }
             }
         }
     }

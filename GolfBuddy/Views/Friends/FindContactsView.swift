@@ -278,8 +278,8 @@ struct FindContactsView: View {
 
             let result = contactsService.matchContacts(against: dataService.allUsers)
             await MainActor.run {
-                matchedUsers = result.matched
-                unmatchedContacts = result.unmatched
+                matchedUsers = result.matched.sorted { $0.displayName.localizedCaseInsensitiveCompare($1.displayName) == .orderedAscending }
+                unmatchedContacts = result.unmatched.sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
                 viewState = .results
             }
         }

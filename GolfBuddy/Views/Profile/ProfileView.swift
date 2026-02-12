@@ -4,6 +4,8 @@ struct ProfileView: View {
     @EnvironmentObject var dataService: DataService
     @EnvironmentObject var notificationService: NotificationService
     @State private var showEditSheet = false
+    @State private var showDeleteConfirmation = false
+    @State private var isDeleting = false
 
     var body: some View {
         NavigationStack {
@@ -108,6 +110,19 @@ struct ProfileView: View {
 
                                 Button("Sign Out") { dataService.signOut() }
                                     .buttonStyle(OutlineButtonStyle())
+
+                                Button(action: { showDeleteConfirmation = true }) {
+                                    if isDeleting {
+                                        ProgressView()
+                                            .tint(.red)
+                                    } else {
+                                        Text("Delete Account")
+                                            .font(AppTheme.captionFont.weight(.semibold))
+                                            .foregroundColor(.red)
+                                    }
+                                }
+                                .disabled(isDeleting)
+                                .padding(.top, 8)
                             }
                             .padding(.horizontal, 20)
 
@@ -120,6 +135,22 @@ struct ProfileView: View {
             .navigationBarTitleDisplayMode(.inline)
             .sheet(isPresented: $showEditSheet) {
                 EditProfileView()
+            }
+            .alert("Delete Account", isPresented: $showDeleteConfirmation) {
+                Button("Cancel", role: .cancel) {}
+                Button("Delete", role: .destructive) {
+                    isDeleting = true
+                    Task {
+                        do {
+                            try await dataService.deleteAccount()
+                        } catch {
+                            await MainActor.run { isDeleting = false }
+                            print("[ProfileView] Delete account failed: \(error)")
+                        }
+                    }
+                }
+            } message: {
+                Text("This will permanently delete your account, friends, messages, and all data. This cannot be undone.")
             }
         }
     }

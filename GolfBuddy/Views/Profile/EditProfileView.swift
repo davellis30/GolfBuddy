@@ -85,7 +85,7 @@ struct EditProfileView: View {
 
                             Menu {
                                 Button("None") { selectedCourse = "" }
-                                ForEach(dataService.courses) { course in
+                                ForEach(dataService.nearbyCourses) { course in
                                     Button(course.name) { selectedCourse = course.name }
                                 }
                             } label: {
@@ -112,12 +112,14 @@ struct EditProfileView: View {
 
                         Button("Save Changes") {
                             let handicap = Double(handicapText)
-                            dataService.updateProfile(
-                                handicap: handicap,
-                                homeCourse: selectedCourse.isEmpty ? nil : selectedCourse
-                            )
                             if let userId = dataService.currentUser?.id, let photoData = selectedPhotoData {
                                 dataService.setProfilePhoto(for: userId, imageData: photoData)
+                            }
+                            Task {
+                                try? await dataService.updateProfile(
+                                    handicap: handicap,
+                                    homeCourse: selectedCourse.isEmpty ? nil : selectedCourse
+                                )
                             }
                             dismiss()
                         }

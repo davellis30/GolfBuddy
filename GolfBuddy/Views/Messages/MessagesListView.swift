@@ -29,7 +29,7 @@ struct MessagesListView: View {
                                 NavigationLink(destination: ConversationView(friend: convo.friend)) {
                                     ConversationRow(
                                         friend: convo.friend,
-                                        lastMessage: convo.lastMessage,
+                                        meta: convo.lastMessage,
                                         unreadCount: convo.unreadCount
                                     )
                                 }
@@ -46,36 +46,23 @@ struct MessagesListView: View {
         }
     }
 
-    private var conversations: [(friend: User, lastMessage: Message, unreadCount: Int)] {
+    private var conversations: [(friend: User, lastMessage: ConversationMeta, unreadCount: Int)] {
         guard let currentId = dataService.currentUser?.id else { return [] }
 
-        // Find unique conversation partners
-        var partnerIds = Set<UUID>()
-        for msg in dataService.messages {
-            if msg.senderId == currentId {
-                partnerIds.insert(msg.receiverId)
-            } else if msg.receiverId == currentId {
-                partnerIds.insert(msg.senderId)
-            }
+        return dataService.conversationMetadata.compactMap { meta in
+            guard let partnerId = meta.partnerId(currentUserId: currentId),
+                  let friend = dataService.allUsers.first(where: { $0.id == partnerId }),
+                  meta.lastMessageText != nil else { return nil }
+            return (friend: friend, lastMessage: meta, unreadCount: meta.unreadCount)
         }
-
-        var results: [(friend: User, lastMessage: Message, unreadCount: Int)] = []
-        for partnerId in partnerIds {
-            guard let friend = dataService.allUsers.first(where: { $0.id == partnerId }) else { continue }
-            let convoMessages = dataService.messages(with: partnerId)
-            guard let lastMsg = convoMessages.last else { continue }
-            let unread = dataService.unreadCount(from: partnerId)
-            results.append((friend: friend, lastMessage: lastMsg, unreadCount: unread))
-        }
-
-        return results.sorted { $0.lastMessage.timestamp > $1.lastMessage.timestamp }
+        .sorted { ($0.lastMessage.lastMessageTimestamp ?? .distantPast) > ($1.lastMessage.lastMessageTimestamp ?? .distantPast) }
     }
 }
 
 struct ConversationRow: View {
     @EnvironmentObject var dataService: DataService
     let friend: User
-    let lastMessage: Message
+    let meta: ConversationMeta
     let unreadCount: Int
 
     var body: some View {
@@ -89,13 +76,15 @@ struct ConversationRow: View {
                         .font(AppTheme.bodyFont.weight(.semibold))
                         .foregroundColor(AppTheme.darkText)
                     Spacer()
-                    Text(lastMessage.timestamp.formatted(date: .abbreviated, time: .shortened))
-                        .font(.system(size: 11, design: .rounded))
-                        .foregroundColor(AppTheme.mutedText)
+                    if let timestamp = meta.lastMessageTimestamp {
+                        Text(timestamp.formatted(date: .abbreviated, time: .shortened))
+                            .font(.system(size: 11, design: .rounded))
+                            .foregroundColor(AppTheme.mutedText)
+                    }
                 }
 
                 HStack {
-                    Text(lastMessage.text)
+                    Text(meta.lastMessageText ?? "")
                         .font(AppTheme.captionFont)
                         .foregroundColor(AppTheme.mutedText)
                         .lineLimit(1)
