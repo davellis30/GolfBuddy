@@ -1,0 +1,486 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		0693C76C5CF1D30F0B13644C /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 366094D31DCFAABCD9030C97 /* AppDelegate.swift */; };
+		074CB187B50F8D3F40DB929E /* WeekendStatus.swift in Sources */ = {isa = PBXBuildFile; fileRef = 004C387DE97C3C503216DB60 /* WeekendStatus.swift */; };
+		19F2002085696B4C9F06B5DB /* GolfBuddyApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = C048FB51883000739824E46B /* GolfBuddyApp.swift */; };
+		1BF8010EA5BA1CB58B7E3730 /* AvatarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7552323B061E36CF1A119660 /* AvatarView.swift */; };
+		3D0412D8214451FDFE1DD75B /* DataService.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC6E69C73D0580A08390C11E /* DataService.swift */; };
+		43114B86AAD21F31BD94ACF1 /* LoginView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A47679844776A547B35469F9 /* LoginView.swift */; };
+		44CAA167049ADA6F2B952FD7 /* FriendRequest.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD54F3B1735CF22D08D3E939 /* FriendRequest.swift */; };
+		52B72485BE854B2CD30A1DA0 /* ProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2448CEDA70A6F63C52202A70 /* ProfileView.swift */; };
+		58C3F6B087F2766A9E1F8A8E /* FriendRequestsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C41E62984A220AC79AD368C /* FriendRequestsView.swift */; };
+		5CB794EF9E35472F24696B71 /* FriendsListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1D56BEA73724410ABE1C48D /* FriendsListView.swift */; };
+		5DC83A68CADE5A3116B7BDD6 /* SetStatusView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2F7F9BE2B7EE98B085F5F4DD /* SetStatusView.swift */; };
+		660E06BA64A659E6EC50C1D2 /* StatusDashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7098BD5FD218346C339BE07E /* StatusDashboardView.swift */; };
+		6CB14F4A66CD545466E45551 /* AppTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1377CDFDB1C2FFE2416C950 /* AppTheme.swift */; };
+		6D7E8F90A1B2C3D4E5F60718 /* Contacts.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1A2B3C4D5E6F708192A3B4C5 /* Contacts.framework */; };
+		7173E8EA5E8DAE564E49EEE4 /* CourseListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A34615481B114E717FB17F88 /* CourseListView.swift */; };
+		77F0C3F833F7869DAB2241FB /* courses.json in Resources */ = {isa = PBXBuildFile; fileRef = 77CCA88E294210B34561D094 /* courses.json */; };
+		796464AC3A9509068B22A55E /* EditProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1E67863576E0AE2F74A636B4 /* EditProfileView.swift */; };
+		7B097B3A2858132E509A2744 /* CourseService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 148DC278C3592F804107C9C4 /* CourseService.swift */; };
+		81CEDC5C2FB9A6E8A5530E2B /* Course.swift in Sources */ = {isa = PBXBuildFile; fileRef = 878137B8096AFDE254332625 /* Course.swift */; };
+		BB1B2C3D4E5F607182930001 /* Message.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA1B2C3D4E5F607182930001 /* Message.swift */; };
+		BB1B2C3D4E5F607182930002 /* MessagesListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA1B2C3D4E5F607182930002 /* MessagesListView.swift */; };
+		BB1B2C3D4E5F607182930003 /* ConversationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA1B2C3D4E5F607182930003 /* ConversationView.swift */; };
+		C5D41AD75DABB5EE160BFB2A /* User.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D5C4E4170C51F473DC58AC6 /* User.swift */; };
+		CB3EC6C2C618B0650909B478 /* NotificationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA1836D574560B1B61574568 /* NotificationService.swift */; };
+		D6E7F8091A2B3C4D5E6F7081 /* ContactsService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F60718293A4B5C /* ContactsService.swift */; };
+		DB4DD93937E9113372C25068 /* SignInWithAppleButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0DD7C7A931FD8307BE85BE0B /* SignInWithAppleButton.swift */; };
+		E74268396EA0C5EB9B4FF49F /* AppleAuthService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 45075763E8F80A2D948F9917 /* AppleAuthService.swift */; };
+		F0E1D2C3B4A596870F1E2D3C /* FindContactsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 92A3B4C5D6E7F80192A3B4C5 /* FindContactsView.swift */; };
+		F32E89CDB6025CCDD73D5374 /* MainTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A54AD665CC3C5E2F2B7F9C0 /* MainTabView.swift */; };
+		F659AA1305D2FD182B7B1F5C /* AddFriendView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F172B37D34572C9BC52B7F9F /* AddFriendView.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		004C387DE97C3C503216DB60 /* WeekendStatus.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeekendStatus.swift; sourceTree = "<group>"; };
+		0DD7C7A931FD8307BE85BE0B /* SignInWithAppleButton.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SignInWithAppleButton.swift; sourceTree = "<group>"; };
+		148DC278C3592F804107C9C4 /* CourseService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CourseService.swift; sourceTree = "<group>"; };
+		1A2B3C4D5E6F708192A3B4C5 /* Contacts.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Contacts.framework; path = System/Library/Frameworks/Contacts.framework; sourceTree = SDKROOT; };
+		1E67863576E0AE2F74A636B4 /* EditProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditProfileView.swift; sourceTree = "<group>"; };
+		1F6B4C970906E01D2146C72E /* GolfBuddy.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = GolfBuddy.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		2448CEDA70A6F63C52202A70 /* ProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileView.swift; sourceTree = "<group>"; };
+		2F7F9BE2B7EE98B085F5F4DD /* SetStatusView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SetStatusView.swift; sourceTree = "<group>"; };
+		366094D31DCFAABCD9030C97 /* AppDelegate.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
+		3D5C4E4170C51F473DC58AC6 /* User.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = User.swift; sourceTree = "<group>"; };
+		45075763E8F80A2D948F9917 /* AppleAuthService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AppleAuthService.swift; sourceTree = "<group>"; };
+		5AEE57D4FBD903E1668694AA /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		5C41E62984A220AC79AD368C /* FriendRequestsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FriendRequestsView.swift; sourceTree = "<group>"; };
+		7098BD5FD218346C339BE07E /* StatusDashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusDashboardView.swift; sourceTree = "<group>"; };
+		7552323B061E36CF1A119660 /* AvatarView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AvatarView.swift; sourceTree = "<group>"; };
+		77CCA88E294210B34561D094 /* courses.json */ = {isa = PBXFileReference; includeInIndex = 1; name = courses.json; path = courses.json; sourceTree = "<group>"; };
+		79E4BC40A59FB43D36669D3F /* GolfBuddy.entitlements */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.entitlements; path = GolfBuddy.entitlements; sourceTree = "<group>"; };
+		7A54AD665CC3C5E2F2B7F9C0 /* MainTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainTabView.swift; sourceTree = "<group>"; };
+		878137B8096AFDE254332625 /* Course.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Course.swift; sourceTree = "<group>"; };
+		92A3B4C5D6E7F80192A3B4C5 /* FindContactsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FindContactsView.swift; sourceTree = "<group>"; };
+		A1B2C3D4E5F60718293A4B5C /* ContactsService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContactsService.swift; sourceTree = "<group>"; };
+		A34615481B114E717FB17F88 /* CourseListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CourseListView.swift; sourceTree = "<group>"; };
+		A47679844776A547B35469F9 /* LoginView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginView.swift; sourceTree = "<group>"; };
+		AA1B2C3D4E5F607182930001 /* Message.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Message.swift; sourceTree = "<group>"; };
+		AA1B2C3D4E5F607182930002 /* MessagesListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MessagesListView.swift; sourceTree = "<group>"; };
+		AA1B2C3D4E5F607182930003 /* ConversationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConversationView.swift; sourceTree = "<group>"; };
+		B1D56BEA73724410ABE1C48D /* FriendsListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FriendsListView.swift; sourceTree = "<group>"; };
+		BC6E69C73D0580A08390C11E /* DataService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DataService.swift; sourceTree = "<group>"; };
+		C048FB51883000739824E46B /* GolfBuddyApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GolfBuddyApp.swift; sourceTree = "<group>"; };
+		C1377CDFDB1C2FFE2416C950 /* AppTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppTheme.swift; sourceTree = "<group>"; };
+		DD54F3B1735CF22D08D3E939 /* FriendRequest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FriendRequest.swift; sourceTree = "<group>"; };
+		F172B37D34572C9BC52B7F9F /* AddFriendView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddFriendView.swift; sourceTree = "<group>"; };
+		FA1836D574560B1B61574568 /* NotificationService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotificationService.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		656D0E45967B2B3B32FC7689 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				6D7E8F90A1B2C3D4E5F60718 /* Contacts.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		27D613A6F937DE785B4FC703 /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				3D5C4E4170C51F473DC58AC6 /* User.swift */,
+				004C387DE97C3C503216DB60 /* WeekendStatus.swift */,
+				878137B8096AFDE254332625 /* Course.swift */,
+				DD54F3B1735CF22D08D3E939 /* FriendRequest.swift */,
+				AA1B2C3D4E5F607182930001 /* Message.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		320D943BEBA3CEC22F3D9623 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				1F6B4C970906E01D2146C72E /* GolfBuddy.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		388E8B48FFDCB64491A46494 /* Friends */ = {
+			isa = PBXGroup;
+			children = (
+				5C41E62984A220AC79AD368C /* FriendRequestsView.swift */,
+				F172B37D34572C9BC52B7F9F /* AddFriendView.swift */,
+				B1D56BEA73724410ABE1C48D /* FriendsListView.swift */,
+				92A3B4C5D6E7F80192A3B4C5 /* FindContactsView.swift */,
+			);
+			path = Friends;
+			sourceTree = "<group>";
+		};
+		5D51D3ACAC7D7DF440D56EF9 /* Theme */ = {
+			isa = PBXGroup;
+			children = (
+				C1377CDFDB1C2FFE2416C950 /* AppTheme.swift */,
+			);
+			path = Theme;
+			sourceTree = "<group>";
+		};
+		6C22571DA9E2B22F5588073A = {
+			isa = PBXGroup;
+			children = (
+				F366704AE2654DD893B747E2 /* GolfBuddy */,
+				320D943BEBA3CEC22F3D9623 /* Products */,
+				B5C6D7E8F9001A2B3C4D5E6F /* Frameworks */,
+			);
+			sourceTree = "<group>";
+		};
+		792480E730837F48E4DDE56D /* Components */ = {
+			isa = PBXGroup;
+			children = (
+				7552323B061E36CF1A119660 /* AvatarView.swift */,
+			);
+			name = Components;
+			path = Components;
+			sourceTree = "<group>";
+		};
+		7F0B553085599CF5C5C29399 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				77CCA88E294210B34561D094 /* courses.json */,
+			);
+			name = Resources;
+			path = Resources;
+			sourceTree = "<group>";
+		};
+		8A4C3F71092FA05AA60354A1 /* Profile */ = {
+			isa = PBXGroup;
+			children = (
+				1E67863576E0AE2F74A636B4 /* EditProfileView.swift */,
+				2448CEDA70A6F63C52202A70 /* ProfileView.swift */,
+			);
+			path = Profile;
+			sourceTree = "<group>";
+		};
+		91E1BA9E668CB6C5F4BF0B8B /* Status */ = {
+			isa = PBXGroup;
+			children = (
+				2F7F9BE2B7EE98B085F5F4DD /* SetStatusView.swift */,
+				7098BD5FD218346C339BE07E /* StatusDashboardView.swift */,
+			);
+			path = Status;
+			sourceTree = "<group>";
+		};
+		AAF1798F0587BB8E80DBBA93 /* Auth */ = {
+			isa = PBXGroup;
+			children = (
+				A47679844776A547B35469F9 /* LoginView.swift */,
+				0DD7C7A931FD8307BE85BE0B /* SignInWithAppleButton.swift */,
+			);
+			path = Auth;
+			sourceTree = "<group>";
+		};
+		B5C6D7E8F9001A2B3C4D5E6F /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				1A2B3C4D5E6F708192A3B4C5 /* Contacts.framework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		CC1B2C3D4E5F607182930001 /* Messages */ = {
+			isa = PBXGroup;
+			children = (
+				AA1B2C3D4E5F607182930002 /* MessagesListView.swift */,
+				AA1B2C3D4E5F607182930003 /* ConversationView.swift */,
+			);
+			path = Messages;
+			sourceTree = "<group>";
+		};
+		D35E586B2902F66A889EC16C /* Courses */ = {
+			isa = PBXGroup;
+			children = (
+				A34615481B114E717FB17F88 /* CourseListView.swift */,
+			);
+			path = Courses;
+			sourceTree = "<group>";
+		};
+		E42F41CBC575683D4DF6AB97 /* App */ = {
+			isa = PBXGroup;
+			children = (
+				C048FB51883000739824E46B /* GolfBuddyApp.swift */,
+				366094D31DCFAABCD9030C97 /* AppDelegate.swift */,
+			);
+			path = App;
+			sourceTree = "<group>";
+		};
+		E68C1A245EA747516F953ADF /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				7A54AD665CC3C5E2F2B7F9C0 /* MainTabView.swift */,
+				AAF1798F0587BB8E80DBBA93 /* Auth */,
+				91E1BA9E668CB6C5F4BF0B8B /* Status */,
+				D35E586B2902F66A889EC16C /* Courses */,
+				8A4C3F71092FA05AA60354A1 /* Profile */,
+				388E8B48FFDCB64491A46494 /* Friends */,
+				CC1B2C3D4E5F607182930001 /* Messages */,
+				792480E730837F48E4DDE56D /* Components */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		F366704AE2654DD893B747E2 /* GolfBuddy */ = {
+			isa = PBXGroup;
+			children = (
+				E42F41CBC575683D4DF6AB97 /* App */,
+				27D613A6F937DE785B4FC703 /* Models */,
+				F65A1D1B05377B48B5E6651F /* Services */,
+				5D51D3ACAC7D7DF440D56EF9 /* Theme */,
+				E68C1A245EA747516F953ADF /* Views */,
+				5AEE57D4FBD903E1668694AA /* Info.plist */,
+				79E4BC40A59FB43D36669D3F /* GolfBuddy.entitlements */,
+				7F0B553085599CF5C5C29399 /* Resources */,
+			);
+			path = GolfBuddy;
+			sourceTree = "<group>";
+		};
+		F65A1D1B05377B48B5E6651F /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				BC6E69C73D0580A08390C11E /* DataService.swift */,
+				148DC278C3592F804107C9C4 /* CourseService.swift */,
+				A1B2C3D4E5F60718293A4B5C /* ContactsService.swift */,
+				FA1836D574560B1B61574568 /* NotificationService.swift */,
+				45075763E8F80A2D948F9917 /* AppleAuthService.swift */,
+			);
+			path = Services;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		0B18A5C32796CB33B71ECBD6 /* GolfBuddy */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 0CFAB38D453E85FDEB461459 /* Build configuration list for PBXNativeTarget "GolfBuddy" */;
+			buildPhases = (
+				1FC3A68A08240CF0E40FC8B1 /* Sources */,
+				656D0E45967B2B3B32FC7689 /* Frameworks */,
+				7A9B696E592503A2AC47FF19 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = GolfBuddy;
+			productName = GolfBuddy;
+			productReference = 1F6B4C970906E01D2146C72E /* GolfBuddy.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		75A3A7797781CE55A4B472A0 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1500;
+				LastUpgradeCheck = 1500;
+			};
+			buildConfigurationList = C1F5B6AA3F3EDAB80BD29393 /* Build configuration list for PBXProject "GolfBuddy" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = 6C22571DA9E2B22F5588073A;
+			productRefGroup = 320D943BEBA3CEC22F3D9623 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				0B18A5C32796CB33B71ECBD6 /* GolfBuddy */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		7A9B696E592503A2AC47FF19 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				77F0C3F833F7869DAB2241FB /* courses.json in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		1FC3A68A08240CF0E40FC8B1 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				19F2002085696B4C9F06B5DB /* GolfBuddyApp.swift in Sources */,
+				C5D41AD75DABB5EE160BFB2A /* User.swift in Sources */,
+				074CB187B50F8D3F40DB929E /* WeekendStatus.swift in Sources */,
+				81CEDC5C2FB9A6E8A5530E2B /* Course.swift in Sources */,
+				44CAA167049ADA6F2B952FD7 /* FriendRequest.swift in Sources */,
+				6CB14F4A66CD545466E45551 /* AppTheme.swift in Sources */,
+				F32E89CDB6025CCDD73D5374 /* MainTabView.swift in Sources */,
+				43114B86AAD21F31BD94ACF1 /* LoginView.swift in Sources */,
+				5DC83A68CADE5A3116B7BDD6 /* SetStatusView.swift in Sources */,
+				660E06BA64A659E6EC50C1D2 /* StatusDashboardView.swift in Sources */,
+				7173E8EA5E8DAE564E49EEE4 /* CourseListView.swift in Sources */,
+				796464AC3A9509068B22A55E /* EditProfileView.swift in Sources */,
+				52B72485BE854B2CD30A1DA0 /* ProfileView.swift in Sources */,
+				58C3F6B087F2766A9E1F8A8E /* FriendRequestsView.swift in Sources */,
+				F659AA1305D2FD182B7B1F5C /* AddFriendView.swift in Sources */,
+				5CB794EF9E35472F24696B71 /* FriendsListView.swift in Sources */,
+				3D0412D8214451FDFE1DD75B /* DataService.swift in Sources */,
+				7B097B3A2858132E509A2744 /* CourseService.swift in Sources */,
+				D6E7F8091A2B3C4D5E6F7081 /* ContactsService.swift in Sources */,
+				F0E1D2C3B4A596870F1E2D3C /* FindContactsView.swift in Sources */,
+				BB1B2C3D4E5F607182930001 /* Message.swift in Sources */,
+				BB1B2C3D4E5F607182930002 /* MessagesListView.swift in Sources */,
+				BB1B2C3D4E5F607182930003 /* ConversationView.swift in Sources */,
+				1BF8010EA5BA1CB58B7E3730 /* AvatarView.swift in Sources */,
+				CB3EC6C2C618B0650909B478 /* NotificationService.swift in Sources */,
+				0693C76C5CF1D30F0B13644C /* AppDelegate.swift in Sources */,
+				E74268396EA0C5EB9B4FF49F /* AppleAuthService.swift in Sources */,
+				DB4DD93937E9113372C25068 /* SignInWithAppleButton.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		28ED8EE32413244B98FD1D72 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = GolfBuddy/GolfBuddy.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = GolfBuddy/Info.plist;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.golfbuddy.app;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
+		3B30FBD1D97FDEEA5329FBF6 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		A2C3F824A624D6D53590E5DE /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		C66604CC7B8D70438B4C80B0 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = GolfBuddy/GolfBuddy.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = GolfBuddy/Info.plist;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.golfbuddy.app;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		0CFAB38D453E85FDEB461459 /* Build configuration list for PBXNativeTarget "GolfBuddy" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				C66604CC7B8D70438B4C80B0 /* Debug */,
+				28ED8EE32413244B98FD1D72 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		C1F5B6AA3F3EDAB80BD29393 /* Build configuration list for PBXProject "GolfBuddy" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				3B30FBD1D97FDEEA5329FBF6 /* Debug */,
+				A2C3F824A624D6D53590E5DE /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 75A3A7797781CE55A4B472A0 /* Project object */;
+}

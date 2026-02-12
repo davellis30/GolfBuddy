@@ -165,8 +165,10 @@ struct CourseDetailSheet: View {
                         // Details
                         VStack(spacing: 14) {
                             DetailRow(icon: "mappin.circle.fill", label: "Address", value: course.fullAddress)
-                            Divider()
-                            DetailRow(icon: "phone.fill", label: "Phone", value: course.phone)
+                            if !course.phone.isEmpty {
+                                Divider()
+                                DetailRow(icon: "phone.fill", label: "Phone", value: course.phone)
+                            }
                             Divider()
                             DetailRow(icon: "number", label: "Holes", value: "\(course.holes)")
                             Divider()

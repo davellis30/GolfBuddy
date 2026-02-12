@@ -9,6 +9,8 @@ struct SetStatusView: View {
     @State private var shareDetails = false
     @State private var selectedCourse: String = ""
     @State private var selectedPlayingWith: Set<UUID> = []
+    @State private var selectedTimeSlots: Set<DayTimeSlot> = []
+    @State private var preferredTimeSlot: DayTimeSlot? = nil
 
     var body: some View {
         NavigationStack {
@@ -40,6 +42,82 @@ struct SetStatusView: View {
                                     isSelected: selectedAvailability == availability,
                                     action: { selectedAvailability = availability }
                                 )
+                            }
+                        }
+
+                        // When section
+                        VStack(alignment: .leading, spacing: 10) {
+                            Text("WHEN")
+                                .font(.system(size: 12, weight: .bold, design: .rounded))
+                                .foregroundColor(AppTheme.mutedText)
+                                .tracking(1)
+
+                            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
+                                ForEach(DayTimeSlot.allSlots, id: \.self) { slot in
+                                    Button {
+                                        if selectedTimeSlots.contains(slot) {
+                                            selectedTimeSlots.remove(slot)
+                                            if preferredTimeSlot == slot {
+                                                preferredTimeSlot = nil
+                                            }
+                                        } else {
+                                            selectedTimeSlots.insert(slot)
+                                        }
+                                    } label: {
+                                        Text(slot.label)
+                                            .font(AppTheme.bodyFont.weight(.medium))
+                                            .frame(maxWidth: .infinity)
+                                            .padding(.vertical, 12)
+                                            .background(
+                                                RoundedRectangle(cornerRadius: 20)
+                                                    .fill(selectedTimeSlots.contains(slot) ? AppTheme.accentGreen : Color.white)
+                                            )
+                                            .overlay(
+                                                RoundedRectangle(cornerRadius: 20)
+                                                    .stroke(selectedTimeSlots.contains(slot) ? Color.clear : AppTheme.mutedText.opacity(0.3), lineWidth: 1)
+                                            )
+                                            .foregroundColor(selectedTimeSlots.contains(slot) ? .white : AppTheme.darkText)
+                                    }
+                                }
+                            }
+
+                            Text("PREFERRED TIME")
+                                .font(.system(size: 12, weight: .bold, design: .rounded))
+                                .foregroundColor(AppTheme.mutedText)
+                                .tracking(1)
+                                .padding(.top, 6)
+
+                            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
+                                ForEach(DayTimeSlot.allSlots, id: \.self) { slot in
+                                    Button {
+                                        if preferredTimeSlot == slot {
+                                            preferredTimeSlot = nil
+                                        } else {
+                                            preferredTimeSlot = slot
+                                            selectedTimeSlots.insert(slot)
+                                        }
+                                    } label: {
+                                        HStack(spacing: 6) {
+                                            if preferredTimeSlot == slot {
+                                                Image(systemName: "star.fill")
+                                                    .font(.system(size: 12))
+                                            }
+                                            Text(slot.label)
+                                        }
+                                        .font(AppTheme.bodyFont.weight(.medium))
+                                        .frame(maxWidth: .infinity)
+                                        .padding(.vertical, 12)
+                                        .background(
+                                            RoundedRectangle(cornerRadius: 20)
+                                                .fill(preferredTimeSlot == slot ? AppTheme.gold : Color.white)
+                                        )
+                                        .overlay(
+                                            RoundedRectangle(cornerRadius: 20)
+                                                .stroke(preferredTimeSlot == slot ? Color.clear : AppTheme.mutedText.opacity(0.3), lineWidth: 1)
+                                        )
+                                        .foregroundColor(preferredTimeSlot == slot ? .white : AppTheme.darkText)
+                                    }
+                                }
                             }
                         }
 
@@ -174,7 +252,9 @@ struct SetStatusView: View {
                                     isVisible: isVisible,
                                     shareDetails: shareDetails,
                                     courseName: selectedCourse.isEmpty ? nil : selectedCourse,
-                                    playingWith: Array(selectedPlayingWith)
+                                    playingWith: Array(selectedPlayingWith),
+                                    timeSlots: Array(selectedTimeSlots),
+                                    preferredTimeSlot: preferredTimeSlot
                                 )
                                 dismiss()
                             }
@@ -219,6 +299,8 @@ struct SetStatusView: View {
         shareDetails = status.shareDetails
         selectedCourse = status.courseName ?? ""
         selectedPlayingWith = Set(status.playingWith)
+        selectedTimeSlots = Set(status.timeSlots)
+        preferredTimeSlot = status.preferredTimeSlot
     }
 }
 
@@ -257,6 +339,7 @@ struct StatusOption: View {
 }
 
 struct FriendToggleRow: View {
+    @EnvironmentObject var dataService: DataService
     let friend: User
     let isSelected: Bool
     let toggle: () -> Void
@@ -264,14 +347,7 @@ struct FriendToggleRow: View {
     var body: some View {
         Button(action: toggle) {
             HStack(spacing: 12) {
-                ZStack {
-                    Circle()
-                        .fill(isSelected ? AppTheme.accentGreen : AppTheme.darkCream)
-                        .frame(width: 36, height: 36)
-                    Text(friend.avatarInitials)
-                        .font(.system(size: 12, weight: .bold, design: .rounded))
-                        .foregroundColor(isSelected ? .white : AppTheme.accentGreen)
-                }
+                AvatarView(userId: friend.id, size: 36)
 
                 Text(friend.displayName)
                     .font(AppTheme.bodyFont)

@@ -35,7 +35,10 @@ struct StatusDashboardView: View {
 
                             LazyVStack(spacing: 10) {
                                 ForEach(friendStatuses, id: \.0.id) { friend, status in
-                                    FriendStatusCard(friend: friend, status: status)
+                                    NavigationLink(destination: ConversationView(friend: friend)) {
+                                        FriendStatusCard(friend: friend, status: status)
+                                    }
+                                    .buttonStyle(.plain)
                                 }
                             }
                             .padding(.horizontal, 20)
@@ -102,6 +105,30 @@ struct StatusDashboardView: View {
                     }
                 }
 
+                if !status.timeSlots.isEmpty {
+                    HStack(spacing: 6) {
+                        ForEach(status.timeSlots, id: \.self) { slot in
+                            let isPreferred = status.preferredTimeSlot == slot
+                            HStack(spacing: 4) {
+                                if isPreferred {
+                                    Image(systemName: "star.fill")
+                                        .font(.system(size: 10))
+                                }
+                                Text(slot.label)
+                            }
+                            .font(.system(size: 12, weight: .semibold, design: .rounded))
+                            .foregroundColor(isPreferred ? AppTheme.gold : AppTheme.accentGreen)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 4)
+                            .background(
+                                Capsule()
+                                    .fill(isPreferred ? AppTheme.gold.opacity(0.15) : AppTheme.accentGreen.opacity(0.12))
+                            )
+                        }
+                        Spacer()
+                    }
+                }
+
                 HStack(spacing: 16) {
                     Label(
                         status.isVisible ? "Visible to friends" : "Hidden from friends",
@@ -149,14 +176,7 @@ struct FriendStatusCard: View {
     var body: some View {
         VStack(spacing: 10) {
             HStack(spacing: 12) {
-                ZStack {
-                    Circle()
-                        .fill(status.availability.color.opacity(0.15))
-                        .frame(width: 44, height: 44)
-                    Text(friend.avatarInitials)
-                        .font(.system(size: 15, weight: .bold, design: .rounded))
-                        .foregroundColor(status.availability.color)
-                }
+                AvatarView(userId: friend.id, size: 44)
 
                 VStack(alignment: .leading, spacing: 2) {
                     Text(friend.displayName)
@@ -173,6 +193,35 @@ struct FriendStatusCard: View {
                 }
 
                 Spacer()
+
+                Image(systemName: "message.fill")
+                    .font(.system(size: 16))
+                    .foregroundColor(AppTheme.accentGreen)
+            }
+
+            if !status.timeSlots.isEmpty {
+                HStack(spacing: 4) {
+                    ForEach(status.timeSlots, id: \.self) { slot in
+                        let isPreferred = status.preferredTimeSlot == slot
+                        HStack(spacing: 3) {
+                            if isPreferred {
+                                Image(systemName: "star.fill")
+                                    .font(.system(size: 9))
+                            }
+                            Text(slot.label)
+                        }
+                        .font(.system(size: 11, weight: .semibold, design: .rounded))
+                        .foregroundColor(isPreferred ? AppTheme.gold : status.availability.color)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 2)
+                        .background(
+                            Capsule()
+                                .fill(isPreferred ? AppTheme.gold.opacity(0.15) : status.availability.color.opacity(0.12))
+                        )
+                    }
+                    Spacer()
+                }
+                .padding(.leading, 56)
             }
 
             if status.shareDetails {

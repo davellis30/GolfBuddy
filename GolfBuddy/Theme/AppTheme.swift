@@ -12,6 +12,7 @@ struct AppTheme {
     static let statusLooking = Color(red: 0.20, green: 0.60, blue: 0.86)
     static let statusPlaying = Color(red: 0.18, green: 0.54, blue: 0.22)
     static let statusSeeking = Color(red: 0.85, green: 0.18, blue: 0.18)
+    static let gold = Color(red: 0.85, green: 0.65, blue: 0.13)
 
     // MARK: - Fonts
     static let titleFont = Font.system(size: 28, weight: .bold, design: .rounded)

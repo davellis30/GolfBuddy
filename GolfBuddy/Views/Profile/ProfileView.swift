@@ -2,6 +2,7 @@ import SwiftUI
 
 struct ProfileView: View {
     @EnvironmentObject var dataService: DataService
+    @EnvironmentObject var notificationService: NotificationService
     @State private var showEditSheet = false
 
     var body: some View {
@@ -14,20 +15,7 @@ struct ProfileView: View {
                         VStack(spacing: 24) {
                             // Avatar + Name
                             VStack(spacing: 14) {
-                                ZStack {
-                                    Circle()
-                                        .fill(
-                                            LinearGradient(
-                                                colors: [AppTheme.accentGreen, AppTheme.primaryGreen],
-                                                startPoint: .topLeading,
-                                                endPoint: .bottomTrailing
-                                            )
-                                        )
-                                        .frame(width: 100, height: 100)
-                                    Text(user.avatarInitials)
-                                        .font(.system(size: 36, weight: .bold, design: .rounded))
-                                        .foregroundColor(.white)
-                                }
+                                AvatarView(userId: user.id, size: 100)
 
                                 Text(user.displayName)
                                     .font(AppTheme.titleFont)
@@ -60,6 +48,30 @@ struct ProfileView: View {
                                     value: "\(dataService.friends(of: user.id).count)",
                                     icon: "person.2.fill"
                                 )
+                                Divider()
+                                HStack(spacing: 12) {
+                                    Image(systemName: "bell.fill")
+                                        .foregroundColor(AppTheme.accentGreen)
+                                        .frame(width: 24)
+                                    Text("Notifications")
+                                        .font(AppTheme.bodyFont)
+                                        .foregroundColor(AppTheme.mutedText)
+                                    Spacer()
+                                    if notificationService.permissionStatus == .authorized {
+                                        Text("Enabled")
+                                            .font(AppTheme.bodyFont.weight(.medium))
+                                            .foregroundColor(AppTheme.accentGreen)
+                                    } else {
+                                        Button("Enable") {
+                                            Task { await notificationService.requestPermission() }
+                                        }
+                                        .font(AppTheme.captionFont.weight(.semibold))
+                                        .foregroundColor(.white)
+                                        .padding(.horizontal, 12)
+                                        .padding(.vertical, 6)
+                                        .background(Capsule().fill(AppTheme.accentGreen))
+                                    }
+                                }
                             }
                             .cardStyle()
                             .padding(.horizontal, 20)

@@ -1,5 +1,6 @@
 import Foundation
 import Combine
+import UIKit
 
 class DataService: ObservableObject {
     static let shared = DataService()
@@ -10,8 +11,12 @@ class DataService: ObservableObject {
     @Published var friendRequests: [FriendRequest] = []
     @Published var friendships: [UUID: Set<UUID>] = [:] // userId -> set of friend userIds
     @Published var weekendStatuses: [UUID: WeekendStatus] = [:] // userId -> status
+    @Published var messages: [Message] = []
+    @Published var profilePhotos: [UUID: Data] = [:]
+    @Published var appleUserMap: [String: UUID] = [:]
 
-    let courses: [Course] = CourseService.chicagoPublicCourses.sorted { $0.distanceFromChicago < $1.distanceFromChicago }
+    let courses: [Course] = CourseService.chicagoAreaCourses
+    let allCourses: [Course] = CourseService.allCourses
 
     private init() {
         seedDemoData()
@@ -53,6 +58,65 @@ class DataService: ObservableObject {
         if let idx = allUsers.firstIndex(where: { $0.id == user.id }) {
             allUsers[idx] = user
         }
+    }
+
+    // MARK: - Apple Auth
+
+    func signInWithApple(appleUserId: String, email: String?, fullName: PersonNameComponents?) -> User {
+        if let existingUser = getUserByAppleId(appleUserId) {
+            currentUser = existingUser
+            return existingUser
+        }
+
+        let displayName = [fullName?.givenName, fullName?.familyName]
+            .compactMap { $0 }
+            .joined(separator: " ")
+
+        let finalDisplayName = displayName.isEmpty ? "Apple User" : displayName
+        let finalEmail = email ?? ""
+        let username = "apple_\(UUID().uuidString.prefix(8))"
+
+        let user = User(
+            id: UUID(),
+            username: username,
+            displayName: finalDisplayName,
+            email: finalEmail,
+            handicap: nil,
+            homeCourse: nil
+        )
+
+        allUsers.append(user)
+        appleUserMap[appleUserId] = user.id
+        friendships[user.id] = []
+        currentUser = user
+        return user
+    }
+
+    func getUserByAppleId(_ appleUserId: String) -> User? {
+        guard let userId = appleUserMap[appleUserId] else { return nil }
+        return allUsers.first(where: { $0.id == userId })
+    }
+
+    // MARK: - Profile Photos
+
+    func setProfilePhoto(for userId: UUID, imageData: Data?) {
+        if let data = imageData {
+            profilePhotos[userId] = processProfileImage(data)
+        } else {
+            profilePhotos.removeValue(forKey: userId)
+        }
+    }
+
+    private func processProfileImage(_ data: Data) -> Data? {
+        guard let uiImage = UIImage(data: data) else { return data }
+        let maxDimension: CGFloat = 512
+        let scale = min(maxDimension / uiImage.size.width, maxDimension / uiImage.size.height, 1.0)
+        let newSize = CGSize(width: uiImage.size.width * scale, height: uiImage.size.height * scale)
+        let renderer = UIGraphicsImageRenderer(size: newSize)
+        let resized = renderer.image { _ in
+            uiImage.draw(in: CGRect(origin: .zero, size: newSize))
+        }
+        return resized.jpegData(compressionQuality: 0.8)
     }
 
     // MARK: - Friends
@@ -135,7 +199,9 @@ class DataService: ObservableObject {
         isVisible: Bool,
         shareDetails: Bool,
         courseName: String?,
-        playingWith: [UUID]
+        playingWith: [UUID],
+        timeSlots: [DayTimeSlot] = [],
+        preferredTimeSlot: DayTimeSlot? = nil
     ) {
         guard let currentId = currentUser?.id else { return }
         let status = WeekendStatus(
@@ -144,7 +210,9 @@ class DataService: ObservableObject {
             isVisible: isVisible,
             shareDetails: shareDetails,
             courseName: courseName,
-            playingWith: playingWith
+            playingWith: playingWith,
+            timeSlots: timeSlots,
+            preferredTimeSlot: preferredTimeSlot
         )
         weekendStatuses[currentId] = status
     }
@@ -169,6 +237,38 @@ class DataService: ObservableObject {
 
     func userName(for id: UUID) -> String {
         allUsers.first(where: { $0.id == id })?.displayName ?? "Unknown"
+    }
+
+    // MARK: - Messages
+
+    func sendMessage(to userId: UUID, text: String) {
+        guard let currentId = currentUser?.id else { return }
+        let message = Message(senderId: currentId, receiverId: userId, text: text)
+        messages.append(message)
+    }
+
+    func messages(with userId: UUID) -> [Message] {
+        guard let currentId = currentUser?.id else { return [] }
+        return messages.filter {
+            ($0.senderId == currentId && $0.receiverId == userId) ||
+            ($0.senderId == userId && $0.receiverId == currentId)
+        }.sorted { $0.timestamp < $1.timestamp }
+    }
+
+    func unreadCount(from userId: UUID) -> Int {
+        guard let currentId = currentUser?.id else { return 0 }
+        return messages.filter {
+            $0.senderId == userId && $0.receiverId == currentId && !$0.isRead
+        }.count
+    }
+
+    func markMessagesAsRead(from userId: UUID) {
+        guard let currentId = currentUser?.id else { return }
+        for i in messages.indices {
+            if messages[i].senderId == userId && messages[i].receiverId == currentId && !messages[i].isRead {
+                messages[i].isRead = true
+            }
+        }
     }
 
     // MARK: - Demo Data
@@ -196,7 +296,9 @@ class DataService: ObservableObject {
             userId: demo1.id,
             availability: .lookingToPlay,
             isVisible: true,
-            shareDetails: false
+            shareDetails: false,
+            timeSlots: [DayTimeSlot(day: .saturday, time: .am)],
+            preferredTimeSlot: DayTimeSlot(day: .saturday, time: .am)
         )
         weekendStatuses[demo2.id] = WeekendStatus(
             userId: demo2.id,
@@ -204,7 +306,8 @@ class DataService: ObservableObject {
             isVisible: true,
             shareDetails: true,
             courseName: "Harborside International Golf Center",
-            playingWith: [demo4.id]
+            playingWith: [demo4.id],
+            timeSlots: [DayTimeSlot(day: .sunday, time: .pm)]
         )
         weekendStatuses[demo3.id] = WeekendStatus(
             userId: demo3.id,
@@ -212,7 +315,9 @@ class DataService: ObservableObject {
             isVisible: true,
             shareDetails: true,
             courseName: "Sydney R. Marovitz Golf Course",
-            playingWith: []
+            playingWith: [],
+            timeSlots: [DayTimeSlot(day: .saturday, time: .am), DayTimeSlot(day: .saturday, time: .pm)],
+            preferredTimeSlot: DayTimeSlot(day: .saturday, time: .am)
         )
         weekendStatuses[demo5.id] = WeekendStatus(
             userId: demo5.id,
@@ -220,5 +325,15 @@ class DataService: ObservableObject {
             isVisible: false, // hidden
             shareDetails: false
         )
+
+        // Demo messages (will be visible once a user logs in as demo1/mikej)
+        let now = Date()
+        messages = [
+            Message(senderId: demo1.id, receiverId: demo2.id, text: "Hey Sarah, are you playing this weekend?", timestamp: now.addingTimeInterval(-7200), isRead: true),
+            Message(senderId: demo2.id, receiverId: demo1.id, text: "Yes! Thinking about Harborside. Want to join?", timestamp: now.addingTimeInterval(-6800), isRead: true),
+            Message(senderId: demo1.id, receiverId: demo2.id, text: "Sounds great! What time are you thinking?", timestamp: now.addingTimeInterval(-6400), isRead: true),
+            Message(senderId: demo2.id, receiverId: demo1.id, text: "How about 8am tee time?", timestamp: now.addingTimeInterval(-3600), isRead: false),
+            Message(senderId: demo3.id, receiverId: demo1.id, text: "Mike, need a 4th for Saturday at Marovitz. You in?", timestamp: now.addingTimeInterval(-1800), isRead: false),
+        ]
     }
 }

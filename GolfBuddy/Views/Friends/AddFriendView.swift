@@ -4,6 +4,7 @@ struct AddFriendView: View {
     @EnvironmentObject var dataService: DataService
     @Environment(\.dismiss) private var dismiss
     @State private var searchText = ""
+    @State private var showFindContacts = false
 
     var body: some View {
         NavigationStack {
@@ -11,6 +12,30 @@ struct AddFriendView: View {
                 AppTheme.cream.ignoresSafeArea()
 
                 VStack(spacing: 0) {
+                    // Find from Contacts button
+                    Button(action: { showFindContacts = true }) {
+                        HStack(spacing: 12) {
+                            Image(systemName: "person.crop.rectangle.stack")
+                                .font(.system(size: 22))
+                                .foregroundColor(AppTheme.accentGreen)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Find from Contacts")
+                                    .font(AppTheme.bodyFont.weight(.semibold))
+                                    .foregroundColor(AppTheme.darkText)
+                                Text("See which contacts are on GolfBuddy")
+                                    .font(AppTheme.captionFont)
+                                    .foregroundColor(AppTheme.mutedText)
+                            }
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 14, weight: .semibold))
+                                .foregroundColor(AppTheme.mutedText)
+                        }
+                        .cardStyle()
+                    }
+                    .padding(.horizontal, 20)
+                    .padding(.top, 12)
+
                     // Search bar
                     HStack(spacing: 12) {
                         Image(systemName: "magnifyingglass")
@@ -79,6 +104,10 @@ struct AddFriendView: View {
                         .foregroundColor(AppTheme.accentGreen)
                 }
             }
+            .sheet(isPresented: $showFindContacts) {
+                FindContactsView()
+                    .environmentObject(dataService)
+            }
         }
     }
 }
@@ -90,14 +119,7 @@ struct SearchResultRow: View {
 
     var body: some View {
         HStack(spacing: 14) {
-            ZStack {
-                Circle()
-                    .fill(AppTheme.lightGreen)
-                    .frame(width: 44, height: 44)
-                Text(user.avatarInitials)
-                    .font(.system(size: 15, weight: .bold, design: .rounded))
-                    .foregroundColor(.white)
-            }
+            AvatarView(userId: user.id, size: 44)
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(user.displayName)

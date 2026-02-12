@@ -69,14 +69,7 @@ struct IncomingRequestRow: View {
 
     var body: some View {
         HStack(spacing: 14) {
-            ZStack {
-                Circle()
-                    .fill(AppTheme.accentGreen)
-                    .frame(width: 44, height: 44)
-                Text(sender.avatarInitials)
-                    .font(.system(size: 15, weight: .bold, design: .rounded))
-                    .foregroundColor(.white)
-            }
+            AvatarView(userId: sender.id, size: 44)
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(sender.displayName)
@@ -108,18 +101,12 @@ struct IncomingRequestRow: View {
 }
 
 struct SentRequestRow: View {
+    @EnvironmentObject var dataService: DataService
     let recipient: User
 
     var body: some View {
         HStack(spacing: 14) {
-            ZStack {
-                Circle()
-                    .fill(AppTheme.darkCream)
-                    .frame(width: 44, height: 44)
-                Text(recipient.avatarInitials)
-                    .font(.system(size: 15, weight: .bold, design: .rounded))
-                    .foregroundColor(AppTheme.accentGreen)
-            }
+            AvatarView(userId: recipient.id, size: 44)
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(recipient.displayName)

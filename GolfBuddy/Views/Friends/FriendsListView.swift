@@ -54,7 +54,11 @@ struct FriendsListView: View {
                         } else {
                             LazyVStack(spacing: 10) {
                                 ForEach(myFriends) { friend in
-                                    FriendRow(friend: friend, status: dataService.weekendStatuses[friend.id])
+                                    FriendRow(
+                                        friend: friend,
+                                        status: dataService.weekendStatuses[friend.id],
+                                        unreadCount: dataService.unreadCount(from: friend.id)
+                                    )
                                 }
                             }
                             .padding(.horizontal, 20)
@@ -99,24 +103,12 @@ struct FriendsListView: View {
 struct FriendRow: View {
     let friend: User
     let status: WeekendStatus?
+    var unreadCount: Int = 0
 
     var body: some View {
         HStack(spacing: 14) {
             // Avatar
-            ZStack {
-                Circle()
-                    .fill(
-                        LinearGradient(
-                            colors: [AppTheme.lightGreen, AppTheme.accentGreen],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
-                    .frame(width: 48, height: 48)
-                Text(friend.avatarInitials)
-                    .font(.system(size: 16, weight: .bold, design: .rounded))
-                    .foregroundColor(.white)
-            }
+            AvatarView(userId: friend.id, size: 48)
 
             VStack(alignment: .leading, spacing: 3) {
                 Text(friend.displayName)
@@ -129,6 +121,25 @@ struct FriendRow: View {
             }
 
             Spacer()
+
+            // Message button
+            NavigationLink(destination: ConversationView(friend: friend)) {
+                ZStack(alignment: .topTrailing) {
+                    Image(systemName: "message.fill")
+                        .font(.system(size: 18))
+                        .foregroundColor(AppTheme.accentGreen)
+                        .frame(width: 36, height: 36)
+
+                    if unreadCount > 0 {
+                        Text("\(unreadCount)")
+                            .font(.system(size: 10, weight: .bold, design: .rounded))
+                            .foregroundColor(.white)
+                            .frame(width: 16, height: 16)
+                            .background(Circle().fill(AppTheme.statusSeeking))
+                            .offset(x: 4, y: -4)
+                    }
+                }
+            }
 
             // Status badge
             if let status = status, status.isVisible {

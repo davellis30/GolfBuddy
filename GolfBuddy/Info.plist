@@ -40,5 +40,9 @@
     <array>
         <string>armv7</string>
     </array>
+    <key>NSContactsUsageDescription</key>
+    <string>GolfBuddy uses your contacts to help you find friends who are already on the app.</string>
+    <key>NSPhotoLibraryUsageDescription</key>
+    <string>GolfBuddy needs access to your photo library to let you choose a profile picture.</string>
 </dict>
 </plist>

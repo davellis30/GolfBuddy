@@ -1,4 +1,5 @@
 import SwiftUI
+import PhotosUI
 
 struct EditProfileView: View {
     @EnvironmentObject var dataService: DataService
@@ -6,6 +7,8 @@ struct EditProfileView: View {
 
     @State private var handicapText: String = ""
     @State private var selectedCourse: String = ""
+    @State private var selectedPhotoItem: PhotosPickerItem?
+    @State private var selectedPhotoData: Data?
 
     var body: some View {
         NavigationStack {
@@ -14,6 +17,44 @@ struct EditProfileView: View {
 
                 ScrollView {
                     VStack(spacing: 24) {
+                        // Profile photo
+                        if let userId = dataService.currentUser?.id {
+                            VStack(spacing: 12) {
+                                if let photoData = selectedPhotoData,
+                                   let uiImage = UIImage(data: photoData) {
+                                    Image(uiImage: uiImage)
+                                        .resizable()
+                                        .scaledToFill()
+                                        .frame(width: 100, height: 100)
+                                        .clipShape(Circle())
+                                } else {
+                                    AvatarView(userId: userId, size: 100)
+                                }
+
+                                PhotosPicker(selection: $selectedPhotoItem, matching: .images) {
+                                    Text("Choose Photo")
+                                        .font(AppTheme.captionFont.weight(.semibold))
+                                        .foregroundColor(AppTheme.accentGreen)
+                                        .padding(.horizontal, 16)
+                                        .padding(.vertical, 8)
+                                        .background(
+                                            RoundedRectangle(cornerRadius: 8)
+                                                .stroke(AppTheme.accentGreen, lineWidth: 1.5)
+                                        )
+                                }
+
+                                if selectedPhotoData != nil || dataService.profilePhotos[userId] != nil {
+                                    Button("Remove Photo") {
+                                        selectedPhotoData = nil
+                                        selectedPhotoItem = nil
+                                        dataService.setProfilePhoto(for: userId, imageData: nil)
+                                    }
+                                    .font(AppTheme.captionFont)
+                                    .foregroundColor(AppTheme.statusSeeking)
+                                }
+                            }
+                        }
+
                         // Handicap
                         VStack(alignment: .leading, spacing: 8) {
                             Text("Handicap")
@@ -75,6 +116,9 @@ struct EditProfileView: View {
                                 handicap: handicap,
                                 homeCourse: selectedCourse.isEmpty ? nil : selectedCourse
                             )
+                            if let userId = dataService.currentUser?.id, let photoData = selectedPhotoData {
+                                dataService.setProfilePhoto(for: userId, imageData: photoData)
+                            }
                             dismiss()
                         }
                         .buttonStyle(GreenButtonStyle())
@@ -95,6 +139,16 @@ struct EditProfileView: View {
                     handicapText = String(format: "%.1f", h)
                 }
                 selectedCourse = dataService.currentUser?.homeCourse ?? ""
+                if let userId = dataService.currentUser?.id {
+                    selectedPhotoData = dataService.profilePhotos[userId]
+                }
+            }
+            .onChange(of: selectedPhotoItem) { _, newItem in
+                Task {
+                    if let data = try? await newItem?.loadTransferable(type: Data.self) {
+                        selectedPhotoData = data
+                    }
+                }
             }
         }
     }

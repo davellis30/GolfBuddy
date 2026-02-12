@@ -1,4 +1,5 @@
 import SwiftUI
+import AuthenticationServices
 
 struct LoginView: View {
     @EnvironmentObject var dataService: DataService
@@ -66,6 +67,26 @@ struct LoginView: View {
                     }
                     .padding(.horizontal, 24)
 
+                    // Sign in with Apple
+                    VStack(spacing: 14) {
+                        HStack {
+                            Rectangle()
+                                .fill(AppTheme.mutedText.opacity(0.3))
+                                .frame(height: 1)
+                            Text("or")
+                                .font(AppTheme.captionFont)
+                                .foregroundColor(AppTheme.mutedText)
+                            Rectangle()
+                                .fill(AppTheme.mutedText.opacity(0.3))
+                                .frame(height: 1)
+                        }
+
+                        SignInWithAppleButtonView { result in
+                            handleAppleSignIn(result)
+                        }
+                    }
+                    .padding(.horizontal, 24)
+
                     if !isSignUp {
                         VStack(spacing: 8) {
                             Text("Demo Accounts")
@@ -102,6 +123,30 @@ struct LoginView: View {
             Button("OK", role: .cancel) { }
         } message: {
             Text(errorMessage)
+        }
+    }
+
+    private func handleAppleSignIn(_ result: Result<ASAuthorization, Error>) {
+        switch result {
+        case .success(let authorization):
+            guard let credential = authorization.credential as? ASAuthorizationAppleIDCredential else {
+                errorMessage = "Failed to get Apple ID credential"
+                showError = true
+                return
+            }
+            let _ = dataService.signInWithApple(
+                appleUserId: credential.user,
+                email: credential.email,
+                fullName: credential.fullName
+            )
+            AppleAuthService.shared.saveAppleId(credential.user)
+
+        case .failure(let error):
+            if let authError = error as? ASAuthorizationError, authError.code == .canceled {
+                return
+            }
+            errorMessage = "Apple Sign In failed: \(error.localizedDescription)"
+            showError = true
         }
     }
 

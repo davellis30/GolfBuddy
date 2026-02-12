@@ -20,19 +20,26 @@ struct MainTabView: View {
                 }
                 .tag(1)
 
+            MessagesListView()
+                .tabItem {
+                    Image(systemName: "bubble.left.and.bubble.right")
+                    Text("Messages")
+                }
+                .tag(2)
+
             CourseListView()
                 .tabItem {
                     Image(systemName: "flag.fill")
                     Text("Courses")
                 }
-                .tag(2)
+                .tag(3)
 
             ProfileView()
                 .tabItem {
                     Image(systemName: "person.crop.circle.fill")
                     Text("Profile")
                 }
-                .tag(3)
+                .tag(4)
         }
         .tint(AppTheme.accentGreen)
     }

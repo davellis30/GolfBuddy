@@ -1,6 +1,44 @@
 import Foundation
 import SwiftUI
 
+enum WeekendDay: String, Codable, CaseIterable {
+    case saturday, sunday
+
+    var shortLabel: String {
+        switch self {
+        case .saturday: return "Sat"
+        case .sunday: return "Sun"
+        }
+    }
+}
+
+enum DayTime: String, Codable, CaseIterable {
+    case am, pm
+
+    var shortLabel: String {
+        switch self {
+        case .am: return "AM"
+        case .pm: return "PM"
+        }
+    }
+}
+
+struct DayTimeSlot: Codable, Hashable {
+    let day: WeekendDay
+    let time: DayTime
+
+    var label: String {
+        "\(day.shortLabel) \(time.shortLabel)"
+    }
+
+    static let allSlots: [DayTimeSlot] = [
+        DayTimeSlot(day: .saturday, time: .am),
+        DayTimeSlot(day: .saturday, time: .pm),
+        DayTimeSlot(day: .sunday, time: .am),
+        DayTimeSlot(day: .sunday, time: .pm)
+    ]
+}
+
 enum WeekendAvailability: String, Codable, CaseIterable {
     case lookingToPlay = "Looking to Play"
     case alreadyPlaying = "Already Playing"
@@ -39,7 +77,13 @@ struct WeekendStatus: Identifiable, Codable {
     var shareDetails: Bool
     var courseName: String?
     var playingWith: [UUID]
+    var timeSlots: [DayTimeSlot]
+    var preferredTimeSlot: DayTimeSlot?
     var weekendDate: Date
+
+    var formattedTimeSlots: String {
+        timeSlots.map { $0.label }.joined(separator: " · ")
+    }
 
     init(
         id: UUID = UUID(),
@@ -49,6 +93,8 @@ struct WeekendStatus: Identifiable, Codable {
         shareDetails: Bool = false,
         courseName: String? = nil,
         playingWith: [UUID] = [],
+        timeSlots: [DayTimeSlot] = [],
+        preferredTimeSlot: DayTimeSlot? = nil,
         weekendDate: Date = WeekendStatus.nextWeekend()
     ) {
         self.id = id
@@ -58,6 +104,8 @@ struct WeekendStatus: Identifiable, Codable {
         self.shareDetails = shareDetails
         self.courseName = courseName
         self.playingWith = playingWith
+        self.timeSlots = timeSlots
+        self.preferredTimeSlot = preferredTimeSlot
         self.weekendDate = weekendDate
     }
 
