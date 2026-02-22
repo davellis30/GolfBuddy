@@ -1,0 +1,12 @@
+# macOS
+.DS_Store
+
+# Xcode user data
+*.xcuserstate
+xcuserdata/
+
+# Node modules (Firebase Functions)
+node_modules/
+
+# Firebase local
+.firebase/
