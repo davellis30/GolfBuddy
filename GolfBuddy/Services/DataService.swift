@@ -3,6 +3,7 @@ import Combine
 import UIKit
 import AuthenticationServices
 import CoreLocation
+import FirebaseStorage
 
 class DataService: ObservableObject, @unchecked Sendable {
     static let shared = DataService()
@@ -17,6 +18,7 @@ class DataService: ObservableObject, @unchecked Sendable {
     @Published var profilePhotos: [String: Data] = [:]
     @Published var conversationMetadata: [ConversationMeta] = []
     @Published var activeConversationMessages: [Message] = []
+    @Published var notificationPreferences: NotificationPreferences = .defaults
     @Published var nearbyCourses: [Course] = CourseService.chicagoAreaCourses
 
     let allCourses: [Course] = CourseService.allCourses
@@ -81,6 +83,9 @@ class DataService: ObservableObject, @unchecked Sendable {
     }
 
     func signOut() {
+        if let userId = currentUser?.id {
+            NotificationService.shared.clearFCMToken(userId: userId)
+        }
         try? FirebaseAuthService.shared.signOut()
         clearLocalState()
     }
@@ -117,6 +122,7 @@ class DataService: ObservableObject, @unchecked Sendable {
             }
             self.currentUser = user
         }
+        loadProfilePhoto(for: user.id)
         await startListeners()
     }
 
@@ -139,6 +145,9 @@ class DataService: ObservableObject, @unchecked Sendable {
 
     func startListeners() async {
         guard let userId = currentUser?.id else { return }
+
+        NotificationService.shared.fetchAndStoreFCMToken(userId: userId)
+        await loadNotificationPreferences(userId: userId)
 
         firestoreService.startFriendRequestsListener(userId: userId) { @Sendable [weak self] requests in
             DispatchQueue.main.async {
@@ -197,11 +206,62 @@ class DataService: ObservableObject, @unchecked Sendable {
 
     // MARK: - Profile Photos
 
-    func setProfilePhoto(for userId: String, imageData: Data?) {
-        if let data = imageData {
-            profilePhotos[userId] = processProfileImage(data)
-        } else {
-            profilePhotos.removeValue(forKey: userId)
+    private let storageRef = Storage.storage().reference()
+
+    func uploadProfilePhoto(for userId: String, imageData: Data) async throws {
+        guard let processed = processProfileImage(imageData) else { return }
+
+        // Update local cache immediately
+        await MainActor.run { profilePhotos[userId] = processed }
+
+        // Upload to Firebase Storage
+        let photoRef = storageRef.child("profilePhotos/\(userId).jpg")
+        let metadata = StorageMetadata()
+        metadata.contentType = "image/jpeg"
+        _ = try await photoRef.putDataAsync(processed, metadata: metadata)
+        let downloadUrl = try await photoRef.downloadURL()
+        let urlString = downloadUrl.absoluteString
+
+        // Save URL to Firestore and update local user
+        try await FirebaseAuthService.shared.updateProfilePhotoUrl(firebaseUserId: userId, url: urlString)
+        await MainActor.run {
+            self.currentUser?.profilePhotoUrl = urlString
+            if let idx = self.allUsers.firstIndex(where: { $0.id == userId }) {
+                self.allUsers[idx].profilePhotoUrl = urlString
+            }
+        }
+    }
+
+    func removeProfilePhoto(for userId: String) async throws {
+        await MainActor.run { profilePhotos.removeValue(forKey: userId) }
+
+        let photoRef = storageRef.child("profilePhotos/\(userId).jpg")
+        try? await photoRef.delete()
+
+        try await FirebaseAuthService.shared.updateProfilePhotoUrl(firebaseUserId: userId, url: nil)
+        await MainActor.run {
+            self.currentUser?.profilePhotoUrl = nil
+            if let idx = self.allUsers.firstIndex(where: { $0.id == userId }) {
+                self.allUsers[idx].profilePhotoUrl = nil
+            }
+        }
+    }
+
+    func loadProfilePhoto(for userId: String) {
+        guard profilePhotos[userId] == nil else { return }
+        guard let user = allUsers.first(where: { $0.id == userId }),
+              let urlString = user.profilePhotoUrl,
+              let url = URL(string: urlString) else { return }
+
+        Task {
+            do {
+                let (data, _) = try await URLSession.shared.data(from: url)
+                await MainActor.run {
+                    self.profilePhotos[userId] = data
+                }
+            } catch {
+                print("[DataService] Failed to load profile photo for \(userId): \(error)")
+            }
         }
     }
 
@@ -452,6 +512,29 @@ class DataService: ObservableObject, @unchecked Sendable {
                 try await firestoreService.markMessagesAsRead(conversationId: convoId, userId: currentId)
             } catch {
                 print("[DataService] Failed to mark messages as read: \(error)")
+            }
+        }
+    }
+
+    // MARK: - Notification Preferences
+
+    private func loadNotificationPreferences(userId: String) async {
+        do {
+            let prefs = try await firestoreService.fetchNotificationPreferences(userId: userId)
+            await MainActor.run { self.notificationPreferences = prefs }
+        } catch {
+            print("[DataService] Failed to load notification preferences: \(error)")
+        }
+    }
+
+    func updateNotificationPreferences(_ prefs: NotificationPreferences) {
+        guard let userId = currentUser?.id else { return }
+        notificationPreferences = prefs
+        Task {
+            do {
+                try await firestoreService.updateNotificationPreferences(userId: userId, prefs: prefs)
+            } catch {
+                print("[DataService] Failed to update notification preferences: \(error)")
             }
         }
     }

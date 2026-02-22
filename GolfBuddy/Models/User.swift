@@ -7,6 +7,7 @@ struct User: Identifiable, Codable, Hashable {
     var email: String
     var handicap: Double?
     var homeCourse: String?
+    var profilePhotoUrl: String?
     var avatarInitials: String {
         let parts = displayName.split(separator: " ")
         if parts.count >= 2 {
@@ -33,5 +34,6 @@ extension User {
         self.email = data["email"] as? String ?? ""
         self.handicap = data["handicap"] as? Double
         self.homeCourse = data["homeCourse"] as? String
+        self.profilePhotoUrl = data["profilePhotoUrl"] as? String
     }
 }

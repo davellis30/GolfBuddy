@@ -1,8 +1,9 @@
 import UIKit
 import UserNotifications
 import FirebaseCore
+import FirebaseMessaging
 
-class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDelegate {
+class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDelegate, MessagingDelegate {
 
     func application(
         _ application: UIApplication,
@@ -10,10 +11,11 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
     ) -> Bool {
         FirebaseApp.configure()
         UNUserNotificationCenter.current().delegate = self
+        Messaging.messaging().delegate = self
         return true
     }
 
-    // MARK: - Remote Notification Registration (Stubs)
+    // MARK: - Remote Notification Registration
 
     func application(
         _ application: UIApplication,
@@ -47,5 +49,13 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
         let identifier = response.notification.request.identifier
         print("[AppDelegate] Notification tapped: \(identifier)")
         completionHandler()
+    }
+
+    // MARK: - MessagingDelegate
+
+    func messaging(_ messaging: Messaging, didReceiveRegistrationToken fcmToken: String?) {
+        guard let fcmToken = fcmToken else { return }
+        print("[AppDelegate] FCM token refreshed: \(fcmToken)")
+        NotificationService.shared.handleFCMTokenRefresh(fcmToken)
     }
 }

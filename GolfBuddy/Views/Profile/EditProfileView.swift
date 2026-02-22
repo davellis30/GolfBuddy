@@ -9,6 +9,8 @@ struct EditProfileView: View {
     @State private var selectedCourse: String = ""
     @State private var selectedPhotoItem: PhotosPickerItem?
     @State private var selectedPhotoData: Data?
+    @State private var isSaving = false
+    @State private var photoRemoved = false
 
     var body: some View {
         NavigationStack {
@@ -27,6 +29,9 @@ struct EditProfileView: View {
                                         .scaledToFill()
                                         .frame(width: 100, height: 100)
                                         .clipShape(Circle())
+                                } else if photoRemoved {
+                                    // Show initials placeholder when photo was removed
+                                    AvatarView(userId: userId, size: 100)
                                 } else {
                                     AvatarView(userId: userId, size: 100)
                                 }
@@ -43,11 +48,11 @@ struct EditProfileView: View {
                                         )
                                 }
 
-                                if selectedPhotoData != nil || dataService.profilePhotos[userId] != nil {
+                                if selectedPhotoData != nil || (!photoRemoved && (dataService.profilePhotos[userId] != nil || dataService.currentUser?.profilePhotoUrl != nil)) {
                                     Button("Remove Photo") {
                                         selectedPhotoData = nil
                                         selectedPhotoItem = nil
-                                        dataService.setProfilePhoto(for: userId, imageData: nil)
+                                        photoRemoved = true
                                     }
                                     .font(AppTheme.captionFont)
                                     .foregroundColor(AppTheme.statusSeeking)
@@ -110,20 +115,17 @@ struct EditProfileView: View {
                             }
                         }
 
-                        Button("Save Changes") {
-                            let handicap = Double(handicapText)
-                            if let userId = dataService.currentUser?.id, let photoData = selectedPhotoData {
-                                dataService.setProfilePhoto(for: userId, imageData: photoData)
+                        Button(action: saveChanges) {
+                            if isSaving {
+                                ProgressView()
+                                    .tint(.white)
+                                    .frame(maxWidth: .infinity)
+                            } else {
+                                Text("Save Changes")
                             }
-                            Task {
-                                try? await dataService.updateProfile(
-                                    handicap: handicap,
-                                    homeCourse: selectedCourse.isEmpty ? nil : selectedCourse
-                                )
-                            }
-                            dismiss()
                         }
                         .buttonStyle(GreenButtonStyle())
+                        .disabled(isSaving)
                     }
                     .padding(24)
                 }
@@ -134,6 +136,7 @@ struct EditProfileView: View {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button("Cancel") { dismiss() }
                         .foregroundColor(AppTheme.accentGreen)
+                        .disabled(isSaving)
                 }
             }
             .onAppear {
@@ -141,16 +144,40 @@ struct EditProfileView: View {
                     handicapText = String(format: "%.1f", h)
                 }
                 selectedCourse = dataService.currentUser?.homeCourse ?? ""
-                if let userId = dataService.currentUser?.id {
-                    selectedPhotoData = dataService.profilePhotos[userId]
-                }
             }
             .onChange(of: selectedPhotoItem) { _, newItem in
                 Task {
                     if let data = try? await newItem?.loadTransferable(type: Data.self) {
                         selectedPhotoData = data
+                        photoRemoved = false
                     }
                 }
+            }
+        }
+    }
+
+    private func saveChanges() {
+        guard let userId = dataService.currentUser?.id else { return }
+        isSaving = true
+
+        Task {
+            // Upload or remove photo
+            if let photoData = selectedPhotoData {
+                try? await dataService.uploadProfilePhoto(for: userId, imageData: photoData)
+            } else if photoRemoved {
+                try? await dataService.removeProfilePhoto(for: userId)
+            }
+
+            // Update profile fields
+            let handicap = Double(handicapText)
+            try? await dataService.updateProfile(
+                handicap: handicap,
+                homeCourse: selectedCourse.isEmpty ? nil : selectedCourse
+            )
+
+            await MainActor.run {
+                isSaving = false
+                dismiss()
             }
         }
     }

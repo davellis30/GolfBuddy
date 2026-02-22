@@ -32,7 +32,8 @@ class FirestoreService {
     // MARK: - Users
 
     func searchUsers(query: String, excludingUserId: String) async throws -> [User] {
-        let lowered = query.lowercased()
+        let trimmed = query.hasPrefix("@") ? String(query.dropFirst()) : query
+        let lowered = trimmed.lowercased()
         let end = lowered + "\u{f8ff}"
 
         let usernameSnapshot = try await db.collection("users")
@@ -188,6 +189,9 @@ class FirestoreService {
             .whereField("participants", arrayContains: userId)
             .order(by: "lastMessageTimestamp", descending: true)
             .addSnapshotListener { snapshot, error in
+                if let error = error {
+                    print("[FirestoreService] Conversations listener error: \(error)")
+                }
                 guard let docs = snapshot?.documents else { return }
                 let conversations = docs.compactMap { doc -> ConversationMeta? in
                     let data = doc.data()
@@ -276,6 +280,23 @@ class FirestoreService {
             batch.updateData(["isRead": true], forDocument: doc.reference)
         }
         try await batch.commit()
+    }
+
+    // MARK: - Notification Preferences
+
+    func fetchNotificationPreferences(userId: String) async throws -> NotificationPreferences {
+        let doc = try await db.collection("users").document(userId).getDocument()
+        guard let data = doc.data(),
+              let prefsData = data["notificationPreferences"] as? [String: Any] else {
+            return .defaults
+        }
+        return NotificationPreferences(fromFirestore: prefsData) ?? .defaults
+    }
+
+    func updateNotificationPreferences(userId: String, prefs: NotificationPreferences) async throws {
+        try await db.collection("users").document(userId).updateData([
+            "notificationPreferences": prefs.toFirestoreData()
+        ])
     }
 
     // MARK: - Account Deletion

@@ -10,14 +10,17 @@ class ContactsService {
 
     enum ContactsAccessStatus {
         case authorized
+        case limited
         case denied
         case notDetermined
     }
 
     var accessStatus: ContactsAccessStatus {
         switch CNContactStore.authorizationStatus(for: .contacts) {
-        case .authorized, .limited:
+        case .authorized:
             return .authorized
+        case .limited:
+            return .limited
         case .denied, .restricted:
             return .denied
         case .notDetermined:

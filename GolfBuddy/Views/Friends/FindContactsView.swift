@@ -10,6 +10,7 @@ struct FindContactsView: View {
     @State private var viewState: ViewState = .initial
     @State private var showShareSheet = false
     @State private var shareText = ""
+    @State private var isLimitedAccess = false
 
     private let contactsService = ContactsService.shared
 
@@ -47,6 +48,10 @@ struct FindContactsView: View {
             }
             .sheet(isPresented: $showShareSheet) {
                 ShareSheet(text: shareText)
+            }
+            .onReceive(NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)) { _ in
+                guard viewState == .results else { return }
+                syncContacts()
             }
         }
     }
@@ -120,6 +125,31 @@ struct FindContactsView: View {
     private var resultsView: some View {
         ScrollView {
             LazyVStack(spacing: 10) {
+                if isLimitedAccess {
+                    Button {
+                        if let url = URL(string: UIApplication.openSettingsURLString) {
+                            UIApplication.shared.open(url)
+                        }
+                    } label: {
+                        HStack(spacing: 10) {
+                            Image(systemName: "person.crop.circle.badge.exclamationmark")
+                                .font(.system(size: 20))
+                            Text("You've shared limited contacts. Tap to add more.")
+                                .font(AppTheme.captionFont)
+                                .multilineTextAlignment(.leading)
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 12, weight: .semibold))
+                        }
+                        .foregroundColor(.white)
+                        .padding(14)
+                        .background(
+                            RoundedRectangle(cornerRadius: 12)
+                                .fill(AppTheme.accentGreen)
+                        )
+                    }
+                }
+
                 if !matchedUsers.isEmpty {
                     sectionHeader("On GolfBuddy", count: matchedUsers.count)
 
@@ -270,14 +300,18 @@ struct FindContactsView: View {
                 return
             }
 
-            let granted = await contactsService.requestAccess()
-            if !granted {
-                await MainActor.run { viewState = .denied }
-                return
+            if status == .notDetermined {
+                let granted = await contactsService.requestAccess()
+                if !granted {
+                    await MainActor.run { viewState = .denied }
+                    return
+                }
             }
 
+            let currentStatus = contactsService.accessStatus
             let result = contactsService.matchContacts(against: dataService.allUsers)
             await MainActor.run {
+                isLimitedAccess = currentStatus == .limited
                 matchedUsers = result.matched.sorted { $0.displayName.localizedCaseInsensitiveCompare($1.displayName) == .orderedAscending }
                 unmatchedContacts = result.unmatched.sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
                 viewState = .results

@@ -28,6 +28,9 @@ struct AvatarView: View {
                     .font(.system(size: size * 0.35, weight: .bold, design: .rounded))
                     .foregroundColor(.white)
             }
+            .task(id: userId) {
+                dataService.loadProfilePhoto(for: userId)
+            }
         } else {
             Circle()
                 .fill(AppTheme.darkCream)

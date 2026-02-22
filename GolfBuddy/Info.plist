@@ -40,6 +40,10 @@
     <array>
         <string>armv7</string>
     </array>
+    <key>UIBackgroundModes</key>
+    <array>
+        <string>remote-notification</string>
+    </array>
     <key>NSContactsUsageDescription</key>
     <string>GolfBuddy uses your contacts to help you find friends who are already on the app.</string>
     <key>NSPhotoLibraryUsageDescription</key>

@@ -104,7 +104,8 @@ class FirebaseAuthService {
             displayName: data["displayName"] as? String ?? "",
             email: data["email"] as? String ?? "",
             handicap: data["handicap"] as? Double,
-            homeCourse: data["homeCourse"] as? String
+            homeCourse: data["homeCourse"] as? String,
+            profilePhotoUrl: data["profilePhotoUrl"] as? String
         )
     }
 
@@ -124,6 +125,18 @@ class FirebaseAuthService {
         try await db.collection(usersCollection).document(firebaseUserId).updateData(fields)
     }
 
+    func updateProfilePhotoUrl(firebaseUserId: String, url: String?) async throws {
+        if let url = url {
+            try await db.collection(usersCollection).document(firebaseUserId).updateData([
+                "profilePhotoUrl": url
+            ])
+        } else {
+            try await db.collection(usersCollection).document(firebaseUserId).updateData([
+                "profilePhotoUrl": FieldValue.delete()
+            ])
+        }
+    }
+
     private func saveUserProfile(_ user: User) async throws {
         var data: [String: Any] = [
             "id": user.id,
@@ -138,6 +151,9 @@ class FirebaseAuthService {
         }
         if let homeCourse = user.homeCourse {
             data["homeCourse"] = homeCourse
+        }
+        if let profilePhotoUrl = user.profilePhotoUrl {
+            data["profilePhotoUrl"] = profilePhotoUrl
         }
 
         try await db.collection(usersCollection).document(user.id).setData(data)
