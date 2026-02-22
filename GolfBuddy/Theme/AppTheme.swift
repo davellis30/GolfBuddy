@@ -91,8 +91,8 @@ struct AppTheme {
 
     static let receivedBubble = Color(uiColor: UIColor { tc in
         tc.userInterfaceStyle == .dark
-            ? UIColor(red: 0.22, green: 0.22, blue: 0.24, alpha: 1)
-            : UIColor.systemGray5
+            ? UIColor(red: 0.17, green: 0.17, blue: 0.18, alpha: 1)
+            : UIColor(red: 0.91, green: 0.91, blue: 0.92, alpha: 1)
     })
 
     static let onAccent = Color.white

@@ -89,7 +89,7 @@ struct MessageBubble: View {
             VStack(alignment: isSent ? .trailing : .leading, spacing: 4) {
                 Text(message.text)
                     .font(AppTheme.bodyFont)
-                    .foregroundColor(isSent ? .white : AppTheme.darkText)
+                    .foregroundColor(isSent ? .white : .primary)
                     .padding(.horizontal, 14)
                     .padding(.vertical, 10)
                     .background(
