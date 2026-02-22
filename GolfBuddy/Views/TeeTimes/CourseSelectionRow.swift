@@ -48,8 +48,8 @@ struct CourseSelectionRow: View {
             .padding(12)
             .background(
                 RoundedRectangle(cornerRadius: 10)
-                    .fill(isSelected ? AppTheme.accentGreen.opacity(0.08) : Color.white)
-                    .shadow(color: Color.black.opacity(0.03), radius: 3, x: 0, y: 1)
+                    .fill(isSelected ? AppTheme.accentGreen.opacity(0.08) : AppTheme.cardBackground)
+                    .shadow(color: AppTheme.subtleShadow, radius: 3, x: 0, y: 1)
             )
             .overlay(
                 RoundedRectangle(cornerRadius: 10)

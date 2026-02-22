@@ -70,7 +70,7 @@ struct SetStatusView: View {
                                             .padding(.vertical, 12)
                                             .background(
                                                 RoundedRectangle(cornerRadius: 20)
-                                                    .fill(selectedTimeSlots.contains(slot) ? AppTheme.accentGreen : Color.white)
+                                                    .fill(selectedTimeSlots.contains(slot) ? AppTheme.accentGreen : AppTheme.cardBackground)
                                             )
                                             .overlay(
                                                 RoundedRectangle(cornerRadius: 20)
@@ -109,7 +109,7 @@ struct SetStatusView: View {
                                         .padding(.vertical, 12)
                                         .background(
                                             RoundedRectangle(cornerRadius: 20)
-                                                .fill(preferredTimeSlot == slot ? AppTheme.gold : Color.white)
+                                                .fill(preferredTimeSlot == slot ? AppTheme.gold : AppTheme.cardBackground)
                                         )
                                         .overlay(
                                             RoundedRectangle(cornerRadius: 20)
@@ -331,8 +331,8 @@ struct StatusOption: View {
             .padding(14)
             .background(
                 RoundedRectangle(cornerRadius: 12)
-                    .fill(isSelected ? availability.color : Color.white)
-                    .shadow(color: Color.black.opacity(0.04), radius: 4, x: 0, y: 2)
+                    .fill(isSelected ? availability.color : AppTheme.cardBackground)
+                    .shadow(color: AppTheme.subtleShadow, radius: 4, x: 0, y: 2)
             )
         }
     }
@@ -361,8 +361,8 @@ struct FriendToggleRow: View {
             .padding(10)
             .background(
                 RoundedRectangle(cornerRadius: 10)
-                    .fill(Color.white)
-                    .shadow(color: Color.black.opacity(0.03), radius: 3, x: 0, y: 1)
+                    .fill(AppTheme.cardBackground)
+                    .shadow(color: AppTheme.subtleShadow, radius: 3, x: 0, y: 1)
             )
         }
     }

@@ -131,8 +131,8 @@ struct TeeTimeResultsView: View {
                 .padding(.vertical, 20)
                 .background(
                     RoundedRectangle(cornerRadius: 12)
-                        .fill(Color.white)
-                        .shadow(color: Color.black.opacity(0.04), radius: 4, x: 0, y: 2)
+                        .fill(AppTheme.cardBackground)
+                        .shadow(color: AppTheme.subtleShadow, radius: 4, x: 0, y: 2)
                 )
             } else {
                 ForEach(result.teeTimes) { teeTime in

@@ -66,8 +66,8 @@ struct CourseListView: View {
                         .padding(12)
                         .background(
                             RoundedRectangle(cornerRadius: 10)
-                                .fill(Color.white)
-                                .shadow(color: Color.black.opacity(0.04), radius: 4, x: 0, y: 2)
+                                .fill(AppTheme.cardBackground)
+                                .shadow(color: AppTheme.subtleShadow, radius: 4, x: 0, y: 2)
                         )
                         .padding(.horizontal, 20)
                         .padding(.top, 8)
@@ -89,8 +89,8 @@ struct CourseListView: View {
                     .padding(14)
                     .background(
                         RoundedRectangle(cornerRadius: 12)
-                            .fill(Color.white)
-                            .shadow(color: Color.black.opacity(0.04), radius: 4, x: 0, y: 2)
+                            .fill(AppTheme.inputBackground)
+                            .shadow(color: AppTheme.subtleShadow, radius: 4, x: 0, y: 2)
                     )
                     .padding(.horizontal, 20)
                     .padding(.top, 12)

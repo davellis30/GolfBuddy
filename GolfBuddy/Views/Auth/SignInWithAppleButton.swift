@@ -2,20 +2,26 @@ import SwiftUI
 import AuthenticationServices
 
 struct SignInWithAppleButtonView: View {
+    @Environment(\.colorScheme) private var colorScheme
     let onComplete: (Result<ASAuthorization, Error>) -> Void
 
     var body: some View {
-        SignInWithAppleButtonRepresentable(onComplete: onComplete)
-            .frame(height: 50)
-            .cornerRadius(12)
+        SignInWithAppleButtonRepresentable(
+            style: colorScheme == .dark ? .white : .black,
+            onComplete: onComplete
+        )
+        .id(colorScheme)
+        .frame(height: 50)
+        .cornerRadius(12)
     }
 }
 
 struct SignInWithAppleButtonRepresentable: UIViewRepresentable {
+    let style: ASAuthorizationAppleIDButton.Style
     let onComplete: (Result<ASAuthorization, Error>) -> Void
 
     func makeUIView(context: Context) -> ASAuthorizationAppleIDButton {
-        let button = ASAuthorizationAppleIDButton(type: .signIn, style: .black)
+        let button = ASAuthorizationAppleIDButton(type: .signIn, style: style)
         button.cornerRadius = 12
         button.addTarget(
             context.coordinator,

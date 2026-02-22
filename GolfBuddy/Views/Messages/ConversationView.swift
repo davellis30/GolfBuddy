@@ -55,7 +55,7 @@ struct ConversationView: View {
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 10)
-            .background(Color.white)
+            .background(AppTheme.cardBackground)
         }
         .background(AppTheme.cream.ignoresSafeArea())
         .navigationTitle(friend.displayName)
@@ -94,7 +94,7 @@ struct MessageBubble: View {
                     .padding(.vertical, 10)
                     .background(
                         RoundedRectangle(cornerRadius: 18)
-                            .fill(isSent ? AppTheme.accentGreen : Color(.systemGray5))
+                            .fill(isSent ? AppTheme.accentGreen : AppTheme.receivedBubble)
                     )
 
                 Text(message.timestamp.formatted(date: .omitted, time: .shortened))
