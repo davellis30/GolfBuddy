@@ -1,5 +1,6 @@
 import * as admin from "firebase-admin";
 import {onDocumentCreated} from "firebase-functions/v2/firestore";
+import {onDocumentUpdated} from "firebase-functions/v2/firestore";
 import {onDocumentWritten} from "firebase-functions/v2/firestore";
 
 admin.initializeApp();
@@ -103,6 +104,41 @@ export const onFriendRequestCreated = onDocumentCreated(
       `${senderName} sent you a friend request`,
       {
         type: "friendRequest",
+        requestId: event.params.requestId,
+      },
+      "friendRequest"
+    );
+  }
+);
+
+// --- Trigger: Friend Request Accepted ---
+
+export const onFriendRequestAccepted = onDocumentUpdated(
+  "friendRequests/{requestId}",
+  async (event) => {
+    const before = event.data?.before.data();
+    const after = event.data?.after.data();
+    if (!before || !after) return;
+
+    // Only fire when status changes to "accepted"
+    if (before.status === "accepted" || after.status !== "accepted") return;
+
+    const fromUserId = after.fromUserId as string;
+    const toUserId = after.toUserId as string;
+
+    // Look up the accepter's display name
+    const accepterDoc = await db.collection("users").doc(toUserId).get();
+    const accepterName = accepterDoc.exists
+      ? (accepterDoc.data() as UserDoc).displayName || "Someone"
+      : "Someone";
+
+    // Notify the original sender
+    await sendPushNotification(
+      fromUserId,
+      "Friend Request Accepted",
+      `${accepterName} accepted your friend request`,
+      {
+        type: "friendRequestAccepted",
         requestId: event.params.requestId,
       },
       "friendRequest"

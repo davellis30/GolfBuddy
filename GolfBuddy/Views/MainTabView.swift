@@ -4,6 +4,19 @@ struct MainTabView: View {
     @EnvironmentObject var dataService: DataService
     @State private var selectedTab = 0
 
+    private var weekendBadge: Int {
+        guard let userId = dataService.currentUser?.id else { return 0 }
+        return dataService.weekendStatuses[userId] == nil ? 1 : 0
+    }
+
+    private var friendsBadge: Int {
+        dataService.pendingRequestsForCurrentUser().count
+    }
+
+    private var messagesBadge: Int {
+        dataService.conversationMetadata.reduce(0) { $0 + $1.unreadCount }
+    }
+
     var body: some View {
         TabView(selection: $selectedTab) {
             StatusDashboardView()
@@ -12,6 +25,7 @@ struct MainTabView: View {
                     Text("Weekend")
                 }
                 .tag(0)
+                .badge(weekendBadge)
 
             FriendsListView()
                 .tabItem {
@@ -19,6 +33,7 @@ struct MainTabView: View {
                     Text("Friends")
                 }
                 .tag(1)
+                .badge(friendsBadge)
 
             MessagesListView()
                 .tabItem {
@@ -26,6 +41,7 @@ struct MainTabView: View {
                     Text("Messages")
                 }
                 .tag(2)
+                .badge(messagesBadge)
 
             CourseListView()
                 .tabItem {

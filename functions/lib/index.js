@@ -33,10 +33,11 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.onWeekendStatusWritten = exports.onMessageCreated = exports.onFriendRequestCreated = void 0;
+exports.onWeekendStatusWritten = exports.onMessageCreated = exports.onFriendRequestAccepted = exports.onFriendRequestCreated = void 0;
 const admin = __importStar(require("firebase-admin"));
 const firestore_1 = require("firebase-functions/v2/firestore");
 const firestore_2 = require("firebase-functions/v2/firestore");
+const firestore_3 = require("firebase-functions/v2/firestore");
 admin.initializeApp();
 const db = admin.firestore();
 async function sendPushNotification(recipientUserId, title, body, data, notificationType) {
@@ -107,6 +108,29 @@ exports.onFriendRequestCreated = (0, firestore_1.onDocumentCreated)("friendReque
         requestId: event.params.requestId,
     }, "friendRequest");
 });
+// --- Trigger: Friend Request Accepted ---
+exports.onFriendRequestAccepted = (0, firestore_2.onDocumentUpdated)("friendRequests/{requestId}", async (event) => {
+    var _a, _b;
+    const before = (_a = event.data) === null || _a === void 0 ? void 0 : _a.before.data();
+    const after = (_b = event.data) === null || _b === void 0 ? void 0 : _b.after.data();
+    if (!before || !after)
+        return;
+    // Only fire when status changes to "accepted"
+    if (before.status === "accepted" || after.status !== "accepted")
+        return;
+    const fromUserId = after.fromUserId;
+    const toUserId = after.toUserId;
+    // Look up the accepter's display name
+    const accepterDoc = await db.collection("users").doc(toUserId).get();
+    const accepterName = accepterDoc.exists
+        ? accepterDoc.data().displayName || "Someone"
+        : "Someone";
+    // Notify the original sender
+    await sendPushNotification(fromUserId, "Friend Request Accepted", `${accepterName} accepted your friend request`, {
+        type: "friendRequestAccepted",
+        requestId: event.params.requestId,
+    }, "friendRequest");
+});
 // --- Trigger: Message Created ---
 exports.onMessageCreated = (0, firestore_1.onDocumentCreated)("conversations/{convoId}/messages/{messageId}", async (event) => {
     const snap = event.data;
@@ -130,7 +154,7 @@ exports.onMessageCreated = (0, firestore_1.onDocumentCreated)("conversations/{co
     }, "message");
 });
 // --- Trigger: Weekend Status Written ---
-exports.onWeekendStatusWritten = (0, firestore_2.onDocumentWritten)("weekendStatuses/{userId}", async (event) => {
+exports.onWeekendStatusWritten = (0, firestore_3.onDocumentWritten)("weekendStatuses/{userId}", async (event) => {
     var _a;
     // Skip if document was deleted
     if (!((_a = event.data) === null || _a === void 0 ? void 0 : _a.after.exists))

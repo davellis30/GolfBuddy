@@ -54,11 +54,14 @@ struct FriendsListView: View {
                         } else {
                             LazyVStack(spacing: 10) {
                                 ForEach(myFriends) { friend in
-                                    FriendRow(
-                                        friend: friend,
-                                        status: dataService.weekendStatuses[friend.id],
-                                        unreadCount: dataService.unreadCount(from: friend.id)
-                                    )
+                                    NavigationLink(destination: FriendProfileView(user: friend)) {
+                                        FriendRow(
+                                            friend: friend,
+                                            status: dataService.weekendStatuses[friend.id],
+                                            unreadCount: dataService.unreadCount(from: friend.id)
+                                        )
+                                    }
+                                    .buttonStyle(.plain)
                                 }
                             }
                             .padding(.horizontal, 20)

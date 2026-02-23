@@ -22,6 +22,7 @@
 		5566B8CB2F3D80D1008701EA /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 5566B8CA2F3D80D1008701EA /* GoogleService-Info.plist */; };
 		58C3F6B087F2766A9E1F8A8E /* FriendRequestsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C41E62984A220AC79AD368C /* FriendRequestsView.swift */; };
 		5CB794EF9E35472F24696B71 /* FriendsListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1D56BEA73724410ABE1C48D /* FriendsListView.swift */; };
+		A1B2C3D4E5F6071829304152 /* FriendProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6071829304153 /* FriendProfileView.swift */; };
 		5DC83A68CADE5A3116B7BDD6 /* SetStatusView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2F7F9BE2B7EE98B085F5F4DD /* SetStatusView.swift */; };
 		660E06BA64A659E6EC50C1D2 /* StatusDashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7098BD5FD218346C339BE07E /* StatusDashboardView.swift */; };
 		6CB14F4A66CD545466E45551 /* AppTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1377CDFDB1C2FFE2416C950 /* AppTheme.swift */; };
@@ -79,6 +80,7 @@
 		AA1B2C3D4E5F607182930001 /* Message.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Message.swift; sourceTree = "<group>"; };
 		AA1B2C3D4E5F607182930002 /* MessagesListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MessagesListView.swift; sourceTree = "<group>"; };
 		AA1B2C3D4E5F607182930003 /* ConversationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConversationView.swift; sourceTree = "<group>"; };
+		A1B2C3D4E5F6071829304153 /* FriendProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FriendProfileView.swift; sourceTree = "<group>"; };
 		B1D56BEA73724410ABE1C48D /* FriendsListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FriendsListView.swift; sourceTree = "<group>"; };
 		BC6E69C73D0580A08390C11E /* DataService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DataService.swift; sourceTree = "<group>"; };
 		C048FB51883000739824E46B /* GolfBuddyApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GolfBuddyApp.swift; sourceTree = "<group>"; };
@@ -140,6 +142,7 @@
 				5C41E62984A220AC79AD368C /* FriendRequestsView.swift */,
 				F172B37D34572C9BC52B7F9F /* AddFriendView.swift */,
 				B1D56BEA73724410ABE1C48D /* FriendsListView.swift */,
+				A1B2C3D4E5F6071829304153 /* FriendProfileView.swift */,
 				92A3B4C5D6E7F80192A3B4C5 /* FindContactsView.swift */,
 			);
 			path = Friends;
@@ -370,6 +373,7 @@
 				58C3F6B087F2766A9E1F8A8E /* FriendRequestsView.swift in Sources */,
 				F659AA1305D2FD182B7B1F5C /* AddFriendView.swift in Sources */,
 				5CB794EF9E35472F24696B71 /* FriendsListView.swift in Sources */,
+				A1B2C3D4E5F6071829304152 /* FriendProfileView.swift in Sources */,
 				3D0412D8214451FDFE1DD75B /* DataService.swift in Sources */,
 				7B097B3A2858132E509A2744 /* CourseService.swift in Sources */,
 				D6E7F8091A2B3C4D5E6F7081 /* ContactsService.swift in Sources */,
