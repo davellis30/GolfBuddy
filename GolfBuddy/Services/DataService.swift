@@ -19,7 +19,10 @@ class DataService: ObservableObject, @unchecked Sendable {
     @Published var conversationMetadata: [ConversationMeta] = []
     @Published var activeConversationMessages: [Message] = []
     @Published var notificationPreferences: NotificationPreferences = .defaults
+    @Published var openInvites: [OpenInvite] = []
     @Published var nearbyCourses: [Course] = CourseService.chicagoAreaCourses
+    @Published var isEmailVerified: Bool = false
+    @Published var showVerificationBanner: Bool = false
 
     let allCourses: [Course] = CourseService.allCourses
 
@@ -48,10 +51,13 @@ class DataService: ObservableObject, @unchecked Sendable {
             username: username,
             displayName: displayName
         )
+        try? await FirebaseAuthService.shared.sendEmailVerification()
         await MainActor.run {
             self.allUsers.append(user)
             self.currentUser = user
             self.friendships[user.id] = []
+            self.isEmailVerified = false
+            self.showVerificationBanner = true
         }
         await startListeners()
     }
@@ -82,6 +88,18 @@ class DataService: ObservableObject, @unchecked Sendable {
         await startListeners()
     }
 
+    func signInWithGoogle(presenting viewController: UIViewController) async throws {
+        let user = try await FirebaseAuthService.shared.signInWithGoogle(presenting: viewController)
+        await MainActor.run {
+            if !self.allUsers.contains(where: { $0.id == user.id }) {
+                self.allUsers.append(user)
+            }
+            self.currentUser = user
+            self.friendships[user.id] = self.friendships[user.id] ?? []
+        }
+        await startListeners()
+    }
+
     func signOut() {
         if let userId = currentUser?.id {
             NotificationService.shared.clearFCMToken(userId: userId)
@@ -98,10 +116,13 @@ class DataService: ObservableObject, @unchecked Sendable {
         friendRequests = []
         friendships = [:]
         weekendStatuses = [:]
+        openInvites = []
         messages = []
         profilePhotos = [:]
         conversationMetadata = []
         activeConversationMessages = []
+        isEmailVerified = false
+        showVerificationBanner = false
     }
 
     func deleteAccount() async throws {
@@ -111,6 +132,27 @@ class DataService: ObservableObject, @unchecked Sendable {
         try await FirebaseAuthService.shared.deleteAccount()
         await MainActor.run {
             self.clearLocalState()
+        }
+    }
+
+    // MARK: - Email Verification
+
+    func sendEmailVerification() {
+        Task {
+            try? await FirebaseAuthService.shared.sendEmailVerification()
+        }
+    }
+
+    func checkEmailVerification() {
+        Task {
+            try? await FirebaseAuthService.shared.reloadUser()
+            let verified = FirebaseAuthService.shared.isEmailVerified
+            await MainActor.run {
+                self.isEmailVerified = verified
+                if verified {
+                    self.showVerificationBanner = false
+                }
+            }
         }
     }
 
@@ -164,6 +206,18 @@ class DataService: ObservableObject, @unchecked Sendable {
                 self.friendships[userId] = friendIds
                 self.startStatusesListener(friendIds: friendIds, currentUserId: userId)
                 self.fetchMissingUserProfiles(friendIds: friendIds)
+            }
+        }
+
+        firestoreService.startOpenInvitesListener(userId: userId) { @Sendable [weak self] invites in
+            DispatchQueue.main.async {
+                self?.openInvites = invites
+                let userIds = Set(
+                    invites.flatMap { invite in
+                        [invite.creatorId] + invite.approvedPlayerIds + invite.joinRequests.map { $0.userId }
+                    }
+                )
+                self?.fetchMissingUserProfiles(friendIds: userIds)
             }
         }
 
@@ -376,6 +430,27 @@ class DataService: ObservableObject, @unchecked Sendable {
         }
     }
 
+    func findContactsOnApp() async -> [User] {
+        guard let currentId = currentUser?.id else { return [] }
+        let status = ContactsService.shared.accessStatus
+        guard status == .authorized || status == .limited else { return [] }
+
+        let contacts = ContactsService.shared.fetchContacts()
+        let emails = Array(Set(
+            contacts.flatMap { $0.emailAddresses.map { ($0.value as String).lowercased() } }
+        ))
+        guard !emails.isEmpty else { return [] }
+
+        do {
+            let users = try await firestoreService.fetchUsersByEmails(emails)
+            let friendIds = friendships[currentId] ?? []
+            return users.filter { $0.id != currentId && !friendIds.contains($0.id) }
+        } catch {
+            print("[DataService] Contact match failed: \(error)")
+            return []
+        }
+    }
+
     func searchUsers(query: String) async -> [User] {
         guard let currentId = currentUser?.id else { return [] }
         guard !query.isEmpty else { return [] }
@@ -448,6 +523,113 @@ class DataService: ObservableObject, @unchecked Sendable {
 
     func userName(for id: String) -> String {
         allUsers.first(where: { $0.id == id })?.displayName ?? "Unknown"
+    }
+
+    // MARK: - Open Invites
+
+    func createOpenInvite(courseName: String, timeSlot: DayTimeSlot, groupSize: Int) {
+        guard let currentId = currentUser?.id else { return }
+        let friendIds = Array(friendships[currentId] ?? [])
+        let visibleTo = [currentId] + friendIds
+
+        let invite = OpenInvite(
+            creatorId: currentId,
+            courseName: courseName,
+            timeSlot: timeSlot,
+            groupSize: groupSize,
+            visibleToFriendIds: visibleTo
+        )
+        openInvites.append(invite)
+
+        Task {
+            do {
+                try await firestoreService.createOpenInvite(invite)
+            } catch {
+                await MainActor.run {
+                    self.openInvites.removeAll { $0.id == invite.id }
+                }
+                print("[DataService] Failed to create open invite: \(error)")
+            }
+        }
+    }
+
+    func requestToJoinInvite(_ invite: OpenInvite) {
+        guard let currentId = currentUser?.id else { return }
+        let alreadyRequested = invite.joinRequests.contains { $0.userId == currentId }
+        let alreadyApproved = invite.approvedPlayerIds.contains(currentId)
+        guard !alreadyRequested && !alreadyApproved else { return }
+
+        let request = JoinRequest(userId: currentId)
+        if let idx = openInvites.firstIndex(where: { $0.id == invite.id }) {
+            openInvites[idx].joinRequests.append(request)
+        }
+
+        Task {
+            do {
+                try await firestoreService.requestToJoinInvite(inviteId: invite.id, joinRequest: request)
+            } catch {
+                await MainActor.run {
+                    if let idx = self.openInvites.firstIndex(where: { $0.id == invite.id }) {
+                        self.openInvites[idx].joinRequests.removeAll { $0.id == request.id }
+                    }
+                }
+                print("[DataService] Failed to request to join invite: \(error)")
+            }
+        }
+    }
+
+    func approveJoinRequest(invite: OpenInvite, request: JoinRequest) {
+        if let idx = openInvites.firstIndex(where: { $0.id == invite.id }) {
+            if let rIdx = openInvites[idx].joinRequests.firstIndex(where: { $0.id == request.id }) {
+                openInvites[idx].joinRequests[rIdx].status = .approved
+            }
+            openInvites[idx].approvedPlayerIds.append(request.userId)
+            if openInvites[idx].isFull {
+                openInvites[idx].status = .full
+            }
+        }
+
+        Task {
+            do {
+                try await firestoreService.approveJoinRequest(inviteId: invite.id, requestId: request.id, userId: request.userId)
+            } catch {
+                print("[DataService] Failed to approve join request: \(error)")
+            }
+        }
+    }
+
+    func declineJoinRequest(invite: OpenInvite, request: JoinRequest) {
+        if let idx = openInvites.firstIndex(where: { $0.id == invite.id }) {
+            if let rIdx = openInvites[idx].joinRequests.firstIndex(where: { $0.id == request.id }) {
+                openInvites[idx].joinRequests[rIdx].status = .declined
+            }
+        }
+
+        Task {
+            do {
+                try await firestoreService.declineJoinRequest(inviteId: invite.id, requestId: request.id)
+            } catch {
+                print("[DataService] Failed to decline join request: \(error)")
+            }
+        }
+    }
+
+    func cancelOpenInvite(_ invite: OpenInvite) {
+        if let idx = openInvites.firstIndex(where: { $0.id == invite.id }) {
+            openInvites[idx].status = .cancelled
+        }
+
+        Task {
+            do {
+                try await firestoreService.cancelOpenInvite(inviteId: invite.id)
+            } catch {
+                print("[DataService] Failed to cancel open invite: \(error)")
+            }
+        }
+    }
+
+    func visibleOpenInvites() -> [OpenInvite] {
+        openInvites.filter { $0.status != .cancelled }
     }
 
     // MARK: - Messages

@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 import AuthenticationServices
 
 struct LoginView: View {
@@ -11,6 +12,9 @@ struct LoginView: View {
     @State private var showError = false
     @State private var errorMessage = ""
     @State private var isLoading = false
+    @State private var showForgotPassword = false
+    @State private var resetEmail = ""
+    @State private var showResetConfirmation = false
 
     var body: some View {
         ZStack {
@@ -74,10 +78,21 @@ struct LoginView: View {
                                 .font(AppTheme.captionFont)
                                 .foregroundColor(AppTheme.accentGreen)
                         }
+
+                        if !isSignUp {
+                            Button(action: {
+                                resetEmail = email
+                                showForgotPassword = true
+                            }) {
+                                Text("Forgot Password?")
+                                    .font(AppTheme.captionFont)
+                                    .foregroundColor(AppTheme.mutedText)
+                            }
+                        }
                     }
                     .padding(.horizontal, 24)
 
-                    // Sign in with Apple
+                    // Social Sign-In
                     VStack(spacing: 14) {
                         HStack {
                             Rectangle()
@@ -94,6 +109,10 @@ struct LoginView: View {
                         SignInWithAppleButtonView { result in
                             handleAppleSignIn(result)
                         }
+
+                        SignInWithGoogleButton {
+                            handleGoogleSignIn()
+                        }
                     }
                     .padding(.horizontal, 24)
 
@@ -105,6 +124,47 @@ struct LoginView: View {
             Button("OK", role: .cancel) { }
         } message: {
             Text(errorMessage)
+        }
+        .alert("Reset Password", isPresented: $showForgotPassword) {
+            TextField("Email", text: $resetEmail)
+                .textInputAutocapitalization(.never)
+                .keyboardType(.emailAddress)
+            Button("Send Reset Link") {
+                handlePasswordReset()
+            }
+            Button("Cancel", role: .cancel) { }
+        } message: {
+            Text("Enter your email address and we'll send you a link to reset your password.")
+        }
+        .alert("Check Your Email", isPresented: $showResetConfirmation) {
+            Button("OK", role: .cancel) { }
+        } message: {
+            Text("If an account exists for \(resetEmail), a password reset link has been sent.")
+        }
+    }
+
+    private func handleGoogleSignIn() {
+        guard let windowScene = UIApplication.shared.connectedScenes
+            .compactMap({ $0 as? UIWindowScene })
+            .first,
+              let rootVC = windowScene.windows.first(where: { $0.isKeyWindow })?.rootViewController else {
+            errorMessage = "Unable to find root view controller"
+            showError = true
+            return
+        }
+        isLoading = true
+        Task {
+            do {
+                try await dataService.signInWithGoogle(presenting: rootVC)
+            } catch {
+                await MainActor.run {
+                    errorMessage = "Google Sign In failed: \(error.localizedDescription)"
+                    showError = true
+                }
+            }
+            await MainActor.run {
+                isLoading = false
+            }
         }
     }
 
@@ -137,6 +197,27 @@ struct LoginView: View {
             }
             errorMessage = "Apple Sign In failed: \(error.localizedDescription)"
             showError = true
+        }
+    }
+
+    private func handlePasswordReset() {
+        guard !resetEmail.isEmpty else {
+            errorMessage = "Please enter your email address."
+            showError = true
+            return
+        }
+        Task {
+            do {
+                try await FirebaseAuthService.shared.sendPasswordReset(email: resetEmail)
+                await MainActor.run {
+                    showResetConfirmation = true
+                }
+            } catch {
+                await MainActor.run {
+                    errorMessage = error.localizedDescription
+                    showError = true
+                }
+            }
         }
     }
 

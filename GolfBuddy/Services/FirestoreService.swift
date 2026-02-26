@@ -63,6 +63,31 @@ class FirestoreService {
         return users
     }
 
+    func fetchUsersByEmails(_ emails: [String]) async throws -> [User] {
+        guard !emails.isEmpty else { return [] }
+        var seen = Set<String>()
+        var users: [User] = []
+
+        // Firestore 'in' query limited to 30 values
+        for batchStart in stride(from: 0, to: emails.count, by: 30) {
+            let batch = Array(emails[batchStart..<min(batchStart + 30, emails.count)])
+            let snapshot = try await db.collection("users")
+                .whereField("email", in: batch)
+                .getDocuments()
+            for doc in snapshot.documents {
+                let id = doc.documentID
+                guard !seen.contains(id) else { continue }
+                seen.insert(id)
+                var data = doc.data()
+                data["id"] = id
+                if let user = User(fromFirestore: data) {
+                    users.append(user)
+                }
+            }
+        }
+        return users
+    }
+
     func fetchUser(userId: String) async throws -> User {
         let doc = try await db.collection("users").document(userId).getDocument()
         guard var data = doc.data() else {
@@ -178,6 +203,87 @@ class FirestoreService {
 
     func clearWeekendStatus(userId: String) async throws {
         try await db.collection("weekendStatuses").document(userId).delete()
+    }
+
+    // MARK: - Open Invites
+
+    func startOpenInvitesListener(userId: String, onChange: @escaping ([OpenInvite]) -> Void) {
+        removeListener(named: "openInvites")
+
+        let listener = db.collection("openInvites")
+            .whereField("visibleToFriendIds", arrayContains: userId)
+            .addSnapshotListener { snapshot, error in
+                guard let docs = snapshot?.documents else { return }
+                let invites = docs.compactMap { OpenInvite(fromFirestore: $0.data()) }
+                onChange(invites)
+            }
+        listeners["openInvites"] = listener
+    }
+
+    func createOpenInvite(_ invite: OpenInvite) async throws {
+        try await db.collection("openInvites").document(invite.id).setData(invite.toFirestoreData())
+    }
+
+    func cancelOpenInvite(inviteId: String) async throws {
+        try await db.collection("openInvites").document(inviteId).updateData([
+            "status": OpenInviteStatus.cancelled.rawValue
+        ])
+    }
+
+    func requestToJoinInvite(inviteId: String, joinRequest: JoinRequest) async throws {
+        try await db.collection("openInvites").document(inviteId).updateData([
+            "joinRequests": FieldValue.arrayUnion([joinRequest.toFirestoreMap()])
+        ])
+    }
+
+    func approveJoinRequest(inviteId: String, requestId: String, userId: String) async throws {
+        _ = try await db.runTransaction { transaction, errorPointer in
+            let ref = self.db.collection("openInvites").document(inviteId)
+            let doc: DocumentSnapshot
+            do {
+                doc = try transaction.getDocument(ref)
+            } catch let error as NSError {
+                errorPointer?.pointee = error
+                return nil
+            }
+            guard let data = doc.data(),
+                  var invite = OpenInvite(fromFirestore: data) else { return nil }
+
+            guard let idx = invite.joinRequests.firstIndex(where: { $0.id == requestId }) else { return nil }
+            invite.joinRequests[idx].status = .approved
+            invite.approvedPlayerIds.append(userId)
+            if invite.isFull { invite.status = .full }
+
+            transaction.updateData([
+                "joinRequests": invite.joinRequests.map { $0.toFirestoreMap() },
+                "approvedPlayerIds": invite.approvedPlayerIds,
+                "status": invite.status.rawValue
+            ], forDocument: ref)
+            return nil
+        }
+    }
+
+    func declineJoinRequest(inviteId: String, requestId: String) async throws {
+        _ = try await db.runTransaction { transaction, errorPointer in
+            let ref = self.db.collection("openInvites").document(inviteId)
+            let doc: DocumentSnapshot
+            do {
+                doc = try transaction.getDocument(ref)
+            } catch let error as NSError {
+                errorPointer?.pointee = error
+                return nil
+            }
+            guard let data = doc.data(),
+                  var invite = OpenInvite(fromFirestore: data) else { return nil }
+
+            guard let idx = invite.joinRequests.firstIndex(where: { $0.id == requestId }) else { return nil }
+            invite.joinRequests[idx].status = .declined
+
+            transaction.updateData([
+                "joinRequests": invite.joinRequests.map { $0.toFirestoreMap() }
+            ], forDocument: ref)
+            return nil
+        }
     }
 
     // MARK: - Conversations
@@ -321,6 +427,14 @@ class FirestoreService {
             .whereField("userIds", arrayContains: userId)
             .getDocuments()
         for doc in friendshipSnapshot.documents {
+            try await doc.reference.delete()
+        }
+
+        // Delete open invites created by this user
+        let inviteSnapshot = try await db.collection("openInvites")
+            .whereField("creatorId", isEqualTo: userId)
+            .getDocuments()
+        for doc in inviteSnapshot.documents {
             try await doc.reference.delete()
         }
 

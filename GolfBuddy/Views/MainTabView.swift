@@ -2,6 +2,7 @@ import SwiftUI
 
 struct MainTabView: View {
     @EnvironmentObject var dataService: DataService
+    @Environment(\.scenePhase) private var scenePhase
     @State private var selectedTab = 0
 
     private var weekendBadge: Int {
@@ -18,45 +19,56 @@ struct MainTabView: View {
     }
 
     var body: some View {
-        TabView(selection: $selectedTab) {
-            StatusDashboardView()
-                .tabItem {
-                    Image(systemName: "calendar")
-                    Text("Weekend")
-                }
-                .tag(0)
-                .badge(weekendBadge)
+        VStack(spacing: 0) {
+            if dataService.showVerificationBanner {
+                EmailVerificationBanner()
+            }
 
-            FriendsListView()
-                .tabItem {
-                    Image(systemName: "person.2.fill")
-                    Text("Friends")
-                }
-                .tag(1)
-                .badge(friendsBadge)
+            TabView(selection: $selectedTab) {
+                StatusDashboardView()
+                    .tabItem {
+                        Image(systemName: "calendar")
+                        Text("Weekend")
+                    }
+                    .tag(0)
+                    .badge(weekendBadge)
 
-            MessagesListView()
-                .tabItem {
-                    Image(systemName: "bubble.left.and.bubble.right")
-                    Text("Messages")
-                }
-                .tag(2)
-                .badge(messagesBadge)
+                FriendsListView()
+                    .tabItem {
+                        Image(systemName: "person.2.fill")
+                        Text("Friends")
+                    }
+                    .tag(1)
+                    .badge(friendsBadge)
 
-            CourseListView()
-                .tabItem {
-                    Image(systemName: "flag.fill")
-                    Text("Courses")
-                }
-                .tag(3)
+                MessagesListView()
+                    .tabItem {
+                        Image(systemName: "bubble.left.and.bubble.right")
+                        Text("Messages")
+                    }
+                    .tag(2)
+                    .badge(messagesBadge)
 
-            ProfileView()
-                .tabItem {
-                    Image(systemName: "person.crop.circle.fill")
-                    Text("Profile")
-                }
-                .tag(4)
+                CourseListView()
+                    .tabItem {
+                        Image(systemName: "flag.fill")
+                        Text("Courses")
+                    }
+                    .tag(3)
+
+                ProfileView()
+                    .tabItem {
+                        Image(systemName: "person.crop.circle.fill")
+                        Text("Profile")
+                    }
+                    .tag(4)
+            }
+            .tint(AppTheme.accentGreen)
         }
-        .tint(AppTheme.accentGreen)
+        .onChange(of: scenePhase) { _, newPhase in
+            if newPhase == .active && dataService.showVerificationBanner {
+                dataService.checkEmailVerification()
+            }
+        }
     }
 }

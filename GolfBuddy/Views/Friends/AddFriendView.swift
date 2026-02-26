@@ -7,6 +7,8 @@ struct AddFriendView: View {
     @State private var searchResults: [User] = []
     @State private var isSearching = false
     @State private var showFindContacts = false
+    @State private var contactMatches: [User] = []
+    @State private var contactsLoaded = false
 
     var body: some View {
         NavigationStack {
@@ -14,29 +16,45 @@ struct AddFriendView: View {
                 AppTheme.cream.ignoresSafeArea()
 
                 VStack(spacing: 0) {
-                    // Find from Contacts button
-                    Button(action: { showFindContacts = true }) {
-                        HStack(spacing: 12) {
-                            Image(systemName: "person.crop.rectangle.stack")
-                                .font(.system(size: 22))
-                                .foregroundColor(AppTheme.accentGreen)
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text("Find from Contacts")
-                                    .font(AppTheme.bodyFont.weight(.semibold))
-                                    .foregroundColor(AppTheme.darkText)
-                                Text("See which contacts are on GolfBuddy")
-                                    .font(AppTheme.captionFont)
-                                    .foregroundColor(AppTheme.mutedText)
+                    // Contacts section: inline matches or "Find from Contacts" card
+                    if contactsLoaded && !contactMatches.isEmpty {
+                        VStack(alignment: .leading, spacing: 10) {
+                            Text("People You May Know")
+                                .font(AppTheme.bodyFont.weight(.semibold))
+                                .foregroundColor(AppTheme.darkText)
+                                .padding(.horizontal, 20)
+                                .padding(.top, 12)
+                            ForEach(contactMatches) { user in
+                                SearchResultRow(user: user)
+                                    .padding(.horizontal, 20)
                             }
-                            Spacer()
-                            Image(systemName: "chevron.right")
-                                .font(.system(size: 14, weight: .semibold))
-                                .foregroundColor(AppTheme.mutedText)
                         }
-                        .cardStyle()
+                    } else if !contactsLoaded || contactMatches.isEmpty {
+                        if ContactsService.shared.accessStatus == .notDetermined || ContactsService.shared.accessStatus == .denied {
+                            Button(action: { showFindContacts = true }) {
+                                HStack(spacing: 12) {
+                                    Image(systemName: "person.crop.rectangle.stack")
+                                        .font(.system(size: 22))
+                                        .foregroundColor(AppTheme.accentGreen)
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text("Find from Contacts")
+                                            .font(AppTheme.bodyFont.weight(.semibold))
+                                            .foregroundColor(AppTheme.darkText)
+                                        Text("See which contacts are on GolfBuddy")
+                                            .font(AppTheme.captionFont)
+                                            .foregroundColor(AppTheme.mutedText)
+                                    }
+                                    Spacer()
+                                    Image(systemName: "chevron.right")
+                                        .font(.system(size: 14, weight: .semibold))
+                                        .foregroundColor(AppTheme.mutedText)
+                                }
+                                .cardStyle()
+                            }
+                            .padding(.horizontal, 20)
+                            .padding(.top, 12)
+                        }
                     }
-                    .padding(.horizontal, 20)
-                    .padding(.top, 12)
 
                     // Search bar
                     HStack(spacing: 12) {
@@ -111,7 +129,12 @@ struct AddFriendView: View {
                         .foregroundColor(AppTheme.accentGreen)
                 }
             }
-            .sheet(isPresented: $showFindContacts) {
+            .task {
+                await loadContactMatches()
+            }
+            .sheet(isPresented: $showFindContacts, onDismiss: {
+                Task { await loadContactMatches() }
+            }) {
                 FindContactsView()
                     .environmentObject(dataService)
             }
@@ -132,6 +155,14 @@ struct AddFriendView: View {
                 }
             }
         }
+    }
+
+    private func loadContactMatches() async {
+        let status = ContactsService.shared.accessStatus
+        guard status == .authorized || status == .limited else { return }
+        let matches = await dataService.findContactsOnApp()
+        contactMatches = matches
+        contactsLoaded = true
     }
 }
 

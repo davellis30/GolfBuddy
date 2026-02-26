@@ -44,6 +44,15 @@
     <array>
         <string>remote-notification</string>
     </array>
+    <key>CFBundleURLTypes</key>
+    <array>
+        <dict>
+            <key>CFBundleURLSchemes</key>
+            <array>
+                <string>$(REVERSED_CLIENT_ID)</string>
+            </array>
+        </dict>
+    </array>
     <key>NSContactsUsageDescription</key>
     <string>GolfBuddy uses your contacts to help you find friends who are already on the app.</string>
     <key>NSPhotoLibraryUsageDescription</key>

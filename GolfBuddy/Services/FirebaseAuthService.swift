@@ -1,7 +1,10 @@
 import Foundation
+import UIKit
 import FirebaseAuth
+import FirebaseCore
 import FirebaseFirestore
 import AuthenticationServices
+import GoogleSignIn
 
 class FirebaseAuthService {
     static let shared = FirebaseAuthService()
@@ -73,6 +76,67 @@ class FirebaseAuthService {
 
         try await saveUserProfile(user)
         return user
+    }
+
+    // MARK: - Google Sign In
+
+    func signInWithGoogle(presenting viewController: UIViewController) async throws -> User {
+        guard let clientID = FirebaseApp.app()?.options.clientID else {
+            throw NSError(domain: "FirebaseAuthService", code: -1, userInfo: [NSLocalizedDescriptionKey: "Missing Firebase client ID"])
+        }
+
+        let config = GIDConfiguration(clientID: clientID)
+        GIDSignIn.sharedInstance.configuration = config
+
+        let result = try await GIDSignIn.sharedInstance.signIn(withPresenting: viewController)
+
+        guard let idToken = result.user.idToken?.tokenString else {
+            throw NSError(domain: "FirebaseAuthService", code: -1, userInfo: [NSLocalizedDescriptionKey: "Missing Google ID token"])
+        }
+
+        let credential = GoogleAuthProvider.credential(
+            withIDToken: idToken,
+            accessToken: result.user.accessToken.tokenString
+        )
+
+        let authResult = try await Auth.auth().signIn(with: credential)
+        let uid = authResult.user.uid
+
+        // Check if user profile already exists
+        if let existingUser = try? await loadUserProfile(firebaseUserId: uid) {
+            return existingUser
+        }
+
+        // Create new profile for first-time Google sign-in
+        let user = User(
+            id: uid,
+            username: "google_\(UUID().uuidString.prefix(8))",
+            displayName: result.user.profile?.name ?? "Google User",
+            email: result.user.profile?.email ?? authResult.user.email ?? "",
+            handicap: nil,
+            homeCourse: nil
+        )
+
+        try await saveUserProfile(user)
+        return user
+    }
+
+    // MARK: - Email Verification & Password Reset
+
+    var isEmailVerified: Bool {
+        Auth.auth().currentUser?.isEmailVerified ?? false
+    }
+
+    func sendEmailVerification() async throws {
+        try await Auth.auth().currentUser?.sendEmailVerification()
+    }
+
+    func sendPasswordReset(email: String) async throws {
+        try await Auth.auth().sendPasswordReset(withEmail: email)
+    }
+
+    func reloadUser() async throws {
+        try await Auth.auth().currentUser?.reload()
     }
 
     // MARK: - Sign Out
