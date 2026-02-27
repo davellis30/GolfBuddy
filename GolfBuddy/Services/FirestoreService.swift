@@ -309,6 +309,29 @@ class FirestoreService {
         }
     }
 
+    // MARK: - Calendar
+
+    func fetchCalendarEntries(userId: String) async throws -> CalendarEntry? {
+        let doc = try await db.collection("calendarEntries").document(userId).getDocument()
+        guard let data = doc.data() else { return nil }
+        return CalendarEntry(fromFirestore: data)
+    }
+
+    func setCalendarEntry(userId: String, dateKey: String, availability: WeekendAvailability) async throws {
+        try await db.collection("calendarEntries").document(userId).setData([
+            "userId": userId,
+            "entries.\(dateKey)": availability.rawValue,
+            "updatedAt": FieldValue.serverTimestamp()
+        ], merge: true)
+    }
+
+    func clearCalendarEntry(userId: String, dateKey: String) async throws {
+        try await db.collection("calendarEntries").document(userId).updateData([
+            "entries.\(dateKey)": FieldValue.delete(),
+            "updatedAt": FieldValue.serverTimestamp()
+        ])
+    }
+
     // MARK: - Conversations
 
     func startConversationsListener(userId: String, onChange: @escaping ([ConversationMeta]) -> Void) {
@@ -452,6 +475,9 @@ class FirestoreService {
         for doc in friendshipSnapshot.documents {
             try await doc.reference.delete()
         }
+
+        // Delete calendar entries
+        try await db.collection("calendarEntries").document(userId).delete()
 
         // Delete open invites created by this user
         let inviteSnapshot = try await db.collection("openInvites")

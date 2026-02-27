@@ -103,6 +103,16 @@ struct ProfileView: View {
                                 .padding(.horizontal, 20)
                             }
 
+                            // My Calendar
+                            NavigationLink(destination: MyCalendarView()) {
+                                HStack {
+                                    Image(systemName: "calendar")
+                                    Text("My Calendar")
+                                }
+                            }
+                            .buttonStyle(GreenButtonStyle())
+                            .padding(.horizontal, 20)
+
                             // Edit + Sign Out
                             VStack(spacing: 12) {
                                 Button("Edit Profile") { showEditSheet = true }

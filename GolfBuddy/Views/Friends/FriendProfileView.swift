@@ -91,6 +91,16 @@ struct FriendProfileView: View {
                         .padding(.horizontal, 20)
                     }
 
+                    // Calendar button
+                    NavigationLink(destination: FriendCalendarView(friend: user)) {
+                        HStack {
+                            Image(systemName: "calendar")
+                            Text("View Calendar")
+                        }
+                    }
+                    .buttonStyle(OutlineButtonStyle())
+                    .padding(.horizontal, 20)
+
                     // Message button
                     NavigationLink(destination: ConversationView(friend: user)) {
                         HStack {

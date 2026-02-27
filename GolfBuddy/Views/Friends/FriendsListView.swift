@@ -6,7 +6,7 @@ struct FriendsListView: View {
     @State private var showRequests = false
     @State private var filterByHandicap = false
     @State private var handicapMin: Double = 0
-    @State private var handicapMax: Double = 54
+    @State private var handicapMax: Double = 36
 
     var body: some View {
         NavigationStack {
@@ -57,7 +57,7 @@ struct FriendsListView: View {
                                             .font(AppTheme.captionFont)
                                             .foregroundColor(AppTheme.mutedText)
                                             .frame(width: 30)
-                                        Slider(value: $handicapMin, in: 0...54, step: 1) {
+                                        Slider(value: $handicapMin, in: 0...36, step: 1) {
                                             Text("Min")
                                         }
                                         .tint(AppTheme.accentGreen)
@@ -73,7 +73,7 @@ struct FriendsListView: View {
                                             .font(AppTheme.captionFont)
                                             .foregroundColor(AppTheme.mutedText)
                                             .frame(width: 30)
-                                        Slider(value: $handicapMax, in: 0...54, step: 1) {
+                                        Slider(value: $handicapMax, in: 0...36, step: 1) {
                                             Text("Max")
                                         }
                                         .tint(AppTheme.accentGreen)

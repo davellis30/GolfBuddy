@@ -52,6 +52,9 @@
 		EE1B2C3D4E5F607182930060 /* OpenInvite.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE1B2C3D4E5F607182930061 /* OpenInvite.swift */; };
 		EE1B2C3D4E5F607182930062 /* CreateInviteView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE1B2C3D4E5F607182930063 /* CreateInviteView.swift */; };
 		EE1B2C3D4E5F607182930064 /* InviteDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE1B2C3D4E5F607182930065 /* InviteDetailView.swift */; };
+		FF1B2C3D4E5F607182930071 /* CalendarEntry.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF1B2C3D4E5F607182930070 /* CalendarEntry.swift */; };
+		FF1B2C3D4E5F607182930073 /* CalendarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF1B2C3D4E5F607182930072 /* CalendarView.swift */; };
+		FF1B2C3D4E5F607182930075 /* FriendCalendarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF1B2C3D4E5F607182930074 /* FriendCalendarView.swift */; };
 		F0E1D2C3B4A596870F1E2D3C /* FindContactsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 92A3B4C5D6E7F80192A3B4C5 /* FindContactsView.swift */; };
 		F32E89CDB6025CCDD73D5374 /* MainTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A54AD665CC3C5E2F2B7F9C0 /* MainTabView.swift */; };
 		F659AA1305D2FD182B7B1F5C /* AddFriendView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F172B37D34572C9BC52B7F9F /* AddFriendView.swift */; };
@@ -106,6 +109,9 @@
 		EE1B2C3D4E5F607182930061 /* OpenInvite.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenInvite.swift; sourceTree = "<group>"; };
 		EE1B2C3D4E5F607182930063 /* CreateInviteView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreateInviteView.swift; sourceTree = "<group>"; };
 		EE1B2C3D4E5F607182930065 /* InviteDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InviteDetailView.swift; sourceTree = "<group>"; };
+		FF1B2C3D4E5F607182930070 /* CalendarEntry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarEntry.swift; sourceTree = "<group>"; };
+		FF1B2C3D4E5F607182930072 /* CalendarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarView.swift; sourceTree = "<group>"; };
+		FF1B2C3D4E5F607182930074 /* FriendCalendarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FriendCalendarView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -137,6 +143,7 @@
 				DD2B3D4E5F607182930012 /* NotificationPreferences.swift */,
 				DD2B3D4E5F607182930013 /* PushNotificationType.swift */,
 				EE1B2C3D4E5F607182930061 /* OpenInvite.swift */,
+				FF1B2C3D4E5F607182930070 /* CalendarEntry.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -234,6 +241,15 @@
 			name = Frameworks;
 			sourceTree = "<group>";
 		};
+		FF1B2C3D4E5F607182930076 /* Calendar */ = {
+			isa = PBXGroup;
+			children = (
+				FF1B2C3D4E5F607182930072 /* CalendarView.swift */,
+				FF1B2C3D4E5F607182930074 /* FriendCalendarView.swift */,
+			);
+			path = Calendar;
+			sourceTree = "<group>";
+		};
 		CC1B2C3D4E5F607182930001 /* Messages */ = {
 			isa = PBXGroup;
 			children = (
@@ -270,6 +286,7 @@
 				8A4C3F71092FA05AA60354A1 /* Profile */,
 				388E8B48FFDCB64491A46494 /* Friends */,
 				CC1B2C3D4E5F607182930001 /* Messages */,
+				FF1B2C3D4E5F607182930076 /* Calendar */,
 				792480E730837F48E4DDE56D /* Components */,
 			);
 			path = Views;
@@ -422,6 +439,9 @@
 				EE1B2C3D4E5F607182930060 /* OpenInvite.swift in Sources */,
 				EE1B2C3D4E5F607182930062 /* CreateInviteView.swift in Sources */,
 				EE1B2C3D4E5F607182930064 /* InviteDetailView.swift in Sources */,
+				FF1B2C3D4E5F607182930071 /* CalendarEntry.swift in Sources */,
+				FF1B2C3D4E5F607182930073 /* CalendarView.swift in Sources */,
+				FF1B2C3D4E5F607182930075 /* FriendCalendarView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

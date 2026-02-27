@@ -20,6 +20,8 @@ class DataService: ObservableObject, @unchecked Sendable {
     @Published var activeConversationMessages: [Message] = []
     @Published var notificationPreferences: NotificationPreferences = .defaults
     @Published var openInvites: [OpenInvite] = []
+    @Published var myCalendarEntries: [String: WeekendAvailability] = [:]
+    @Published var friendCalendarCache: [String: [String: WeekendAvailability]] = [:]
     @Published var nearbyCourses: [Course] = CourseService.chicagoAreaCourses
     @Published var isEmailVerified: Bool = false
     @Published var showVerificationBanner: Bool = false
@@ -117,6 +119,8 @@ class DataService: ObservableObject, @unchecked Sendable {
         friendships = [:]
         weekendStatuses = [:]
         openInvites = []
+        myCalendarEntries = [:]
+        friendCalendarCache = [:]
         messages = []
         profilePhotos = [:]
         conversationMetadata = []
@@ -634,6 +638,68 @@ class DataService: ObservableObject, @unchecked Sendable {
     func visibleOpenInvites() -> [OpenInvite] {
         let startOfToday = Calendar.current.startOfDay(for: Date())
         return openInvites.filter { $0.status != .cancelled && $0.weekendDate >= startOfToday }
+    }
+
+    // MARK: - Calendar
+
+    func loadMyCalendar() {
+        guard let userId = currentUser?.id else { return }
+        Task {
+            do {
+                if let entry = try await firestoreService.fetchCalendarEntries(userId: userId) {
+                    await MainActor.run {
+                        self.myCalendarEntries = entry.entries
+                    }
+                }
+            } catch {
+                print("[DataService] Failed to load calendar: \(error)")
+            }
+        }
+    }
+
+    func setCalendarEntry(date: Date, availability: WeekendAvailability) {
+        guard let userId = currentUser?.id else { return }
+        let key = CalendarEntry.dateKey(from: date)
+        myCalendarEntries[key] = availability
+
+        Task {
+            do {
+                try await firestoreService.setCalendarEntry(userId: userId, dateKey: key, availability: availability)
+            } catch {
+                print("[DataService] Failed to set calendar entry: \(error)")
+            }
+        }
+    }
+
+    func clearCalendarEntry(date: Date) {
+        guard let userId = currentUser?.id else { return }
+        let key = CalendarEntry.dateKey(from: date)
+        myCalendarEntries.removeValue(forKey: key)
+
+        Task {
+            do {
+                try await firestoreService.clearCalendarEntry(userId: userId, dateKey: key)
+            } catch {
+                print("[DataService] Failed to clear calendar entry: \(error)")
+            }
+        }
+    }
+
+    func fetchFriendCalendar(userId: String) async -> [String: WeekendAvailability] {
+        if let cached = friendCalendarCache[userId] {
+            return cached
+        }
+        do {
+            if let entry = try await firestoreService.fetchCalendarEntries(userId: userId) {
+                await MainActor.run {
+                    self.friendCalendarCache[userId] = entry.entries
+                }
+                return entry.entries
+            }
+        } catch {
+            print("[DataService] Failed to fetch friend calendar: \(error)")
+        }
+        return [:]
     }
 
     // MARK: - Messages

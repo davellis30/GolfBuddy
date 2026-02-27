@@ -2,6 +2,7 @@ import SwiftUI
 
 struct MainTabView: View {
     @EnvironmentObject var dataService: DataService
+    @EnvironmentObject var notificationService: NotificationService
     @Environment(\.scenePhase) private var scenePhase
     @State private var selectedTab = 0
 
@@ -64,6 +65,11 @@ struct MainTabView: View {
                     .tag(4)
             }
             .tint(AppTheme.accentGreen)
+        }
+        .task {
+            if notificationService.permissionStatus == .notDetermined {
+                await notificationService.requestPermission()
+            }
         }
         .onChange(of: scenePhase) { _, newPhase in
             if newPhase == .active && dataService.showVerificationBanner {
