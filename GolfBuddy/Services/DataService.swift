@@ -191,6 +191,20 @@ class DataService: ObservableObject, @unchecked Sendable {
         )
     }
 
+    func updateTagline(_ tagline: String) async throws {
+        guard var user = currentUser else { return }
+        let trimmed = tagline.trimmingCharacters(in: .whitespaces)
+        user.statusTagline = trimmed.isEmpty ? nil : trimmed
+        currentUser = user
+        if let idx = allUsers.firstIndex(where: { $0.id == user.id }) {
+            allUsers[idx] = user
+        }
+        try await FirebaseAuthService.shared.updateStatusTagline(
+            firebaseUserId: user.id,
+            tagline: trimmed
+        )
+    }
+
     // MARK: - Listeners
 
     func startListeners() async {

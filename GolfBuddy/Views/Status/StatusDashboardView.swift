@@ -4,6 +4,9 @@ struct StatusDashboardView: View {
     @EnvironmentObject var dataService: DataService
     @State private var showSetStatus = false
     @State private var showCreateInvite = false
+    @State private var isEditingTagline = false
+    @State private var taglineText = ""
+    @FocusState private var taglineFocused: Bool
 
     var body: some View {
         NavigationStack {
@@ -151,6 +154,10 @@ struct StatusDashboardView: View {
         }
     }
 
+    private var myThemeColor: CardColorTheme {
+        dataService.currentUser?.themeColor ?? .classicGreen
+    }
+
     @ViewBuilder
     private var myStatusCard: some View {
         if let userId = dataService.currentUser?.id,
@@ -165,6 +172,9 @@ struct StatusDashboardView: View {
                         .foregroundColor(AppTheme.darkText)
                     Spacer()
                 }
+
+                // Editable tagline
+                taglineRow
 
                 if let course = status.courseName, status.shareDetails {
                     HStack(spacing: 8) {
@@ -228,6 +238,15 @@ struct StatusDashboardView: View {
                 }
             }
             .cardStyle()
+            .overlay(
+                HStack {
+                    RoundedRectangle(cornerRadius: 2)
+                        .fill(myThemeColor.color)
+                        .frame(width: 4)
+                    Spacer()
+                }
+                .padding(.vertical, 8)
+            )
         } else {
             VStack(spacing: 14) {
                 Image(systemName: "calendar.badge.plus")
@@ -243,10 +262,91 @@ struct StatusDashboardView: View {
                     .foregroundColor(AppTheme.mutedText)
                     .multilineTextAlignment(.center)
 
+                // Editable tagline
+                taglineRow
+
                 Button("Set Status") { showSetStatus = true }
                     .buttonStyle(GreenButtonStyle())
             }
             .cardStyle()
+            .overlay(
+                HStack {
+                    RoundedRectangle(cornerRadius: 2)
+                        .fill(myThemeColor.color)
+                        .frame(width: 4)
+                    Spacer()
+                }
+                .padding(.vertical, 8)
+            )
+        }
+    }
+
+    @ViewBuilder
+    private var taglineRow: some View {
+        if isEditingTagline {
+            HStack(spacing: 8) {
+                Image(systemName: "text.quote")
+                    .font(.system(size: 13))
+                    .foregroundColor(myThemeColor.color)
+                TextField("Add a tagline...", text: $taglineText)
+                    .font(.system(size: 13, weight: .medium, design: .rounded))
+                    .foregroundColor(AppTheme.darkText)
+                    .focused($taglineFocused)
+                    .submitLabel(.done)
+                    .onChange(of: taglineText) { _, newValue in
+                        if newValue.count > 40 {
+                            taglineText = String(newValue.prefix(40))
+                        }
+                    }
+                    .onSubmit { saveTagline() }
+                Text("\(taglineText.count)/40")
+                    .font(.system(size: 10, design: .rounded))
+                    .foregroundColor(taglineText.count >= 40 ? AppTheme.statusSeeking : AppTheme.mutedText)
+            }
+            .padding(10)
+            .background(
+                RoundedRectangle(cornerRadius: 8)
+                    .fill(AppTheme.inputBackground)
+            )
+            .onChange(of: taglineFocused) { _, focused in
+                if !focused { saveTagline() }
+            }
+        } else {
+            Button {
+                taglineText = dataService.currentUser?.statusTagline ?? ""
+                isEditingTagline = true
+                taglineFocused = true
+            } label: {
+                HStack(spacing: 6) {
+                    Image(systemName: "text.quote")
+                        .font(.system(size: 13))
+                        .foregroundColor(myThemeColor.color)
+                    if let tagline = dataService.currentUser?.statusTagline, !tagline.isEmpty {
+                        Text(tagline)
+                            .font(.system(size: 13, weight: .medium, design: .rounded))
+                            .foregroundColor(myThemeColor.color)
+                    } else {
+                        Text("Add a tagline...")
+                            .font(.system(size: 13, weight: .medium, design: .rounded))
+                            .foregroundColor(AppTheme.mutedText)
+                    }
+                    Spacer()
+                    Image(systemName: "pencil")
+                        .font(.system(size: 11))
+                        .foregroundColor(AppTheme.mutedText)
+                }
+            }
+        }
+    }
+
+    private func saveTagline() {
+        isEditingTagline = false
+        taglineFocused = false
+        let trimmed = taglineText.trimmingCharacters(in: .whitespaces)
+        let current = dataService.currentUser?.statusTagline ?? ""
+        guard trimmed != current else { return }
+        Task {
+            try? await dataService.updateTagline(trimmed)
         }
     }
 }

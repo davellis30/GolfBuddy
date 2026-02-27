@@ -199,6 +199,18 @@ class FirebaseAuthService {
         try await db.collection(usersCollection).document(firebaseUserId).updateData(fields)
     }
 
+    func updateStatusTagline(firebaseUserId: String, tagline: String) async throws {
+        if tagline.isEmpty {
+            try await db.collection(usersCollection).document(firebaseUserId).updateData([
+                "statusTagline": FieldValue.delete()
+            ])
+        } else {
+            try await db.collection(usersCollection).document(firebaseUserId).updateData([
+                "statusTagline": tagline
+            ])
+        }
+    }
+
     func updateProfilePhotoUrl(firebaseUserId: String, url: String?) async throws {
         if let url = url {
             try await db.collection(usersCollection).document(firebaseUserId).updateData([
