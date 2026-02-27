@@ -554,15 +554,16 @@ class DataService: ObservableObject, @unchecked Sendable {
     }
 
     func requestToJoinInvite(_ invite: OpenInvite) {
-        guard let currentId = currentUser?.id else { return }
-        let alreadyRequested = invite.joinRequests.contains { $0.userId == currentId }
-        let alreadyApproved = invite.approvedPlayerIds.contains(currentId)
-        guard !alreadyRequested && !alreadyApproved else { return }
+        guard let currentId = currentUser?.id,
+              let idx = openInvites.firstIndex(where: { $0.id == invite.id }) else { return }
+        let liveInvite = openInvites[idx]
+        let alreadyRequested = liveInvite.joinRequests.contains { $0.userId == currentId }
+        let alreadyApproved = liveInvite.approvedPlayerIds.contains(currentId)
+        let activeRequestCount = liveInvite.joinRequests.filter { $0.status == .pending }.count
+        guard !alreadyRequested && !alreadyApproved && activeRequestCount < 3 else { return }
 
         let request = JoinRequest(userId: currentId)
-        if let idx = openInvites.firstIndex(where: { $0.id == invite.id }) {
-            openInvites[idx].joinRequests.append(request)
-        }
+        openInvites[idx].joinRequests.append(request)
 
         Task {
             do {
@@ -579,14 +580,16 @@ class DataService: ObservableObject, @unchecked Sendable {
     }
 
     func approveJoinRequest(invite: OpenInvite, request: JoinRequest) {
-        if let idx = openInvites.firstIndex(where: { $0.id == invite.id }) {
-            if let rIdx = openInvites[idx].joinRequests.firstIndex(where: { $0.id == request.id }) {
-                openInvites[idx].joinRequests[rIdx].status = .approved
-            }
-            openInvites[idx].approvedPlayerIds.append(request.userId)
-            if openInvites[idx].isFull {
-                openInvites[idx].status = .full
-            }
+        guard let idx = openInvites.firstIndex(where: { $0.id == invite.id }),
+              openInvites[idx].status == .open,
+              openInvites[idx].spotsRemaining > 0 else { return }
+
+        if let rIdx = openInvites[idx].joinRequests.firstIndex(where: { $0.id == request.id }) {
+            openInvites[idx].joinRequests[rIdx].status = .approved
+        }
+        openInvites[idx].approvedPlayerIds.append(request.userId)
+        if openInvites[idx].isFull {
+            openInvites[idx].status = .full
         }
 
         Task {
@@ -629,7 +632,8 @@ class DataService: ObservableObject, @unchecked Sendable {
     }
 
     func visibleOpenInvites() -> [OpenInvite] {
-        openInvites.filter { $0.status != .cancelled }
+        let startOfToday = Calendar.current.startOfDay(for: Date())
+        return openInvites.filter { $0.status != .cancelled && $0.weekendDate >= startOfToday }
     }
 
     // MARK: - Messages

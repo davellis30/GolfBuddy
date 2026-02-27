@@ -231,9 +231,30 @@ class FirestoreService {
     }
 
     func requestToJoinInvite(inviteId: String, joinRequest: JoinRequest) async throws {
-        try await db.collection("openInvites").document(inviteId).updateData([
-            "joinRequests": FieldValue.arrayUnion([joinRequest.toFirestoreMap()])
-        ])
+        _ = try await db.runTransaction { transaction, errorPointer in
+            let ref = self.db.collection("openInvites").document(inviteId)
+            let doc: DocumentSnapshot
+            do {
+                doc = try transaction.getDocument(ref)
+            } catch let error as NSError {
+                errorPointer?.pointee = error
+                return nil
+            }
+            guard let data = doc.data(),
+                  let invite = OpenInvite(fromFirestore: data),
+                  invite.status == .open else { return nil }
+
+            let pendingCount = invite.joinRequests.filter { $0.status == .pending }.count
+            let alreadyRequested = invite.joinRequests.contains { $0.userId == joinRequest.userId }
+            guard !alreadyRequested && pendingCount < 3 else { return nil }
+
+            var updatedRequests = invite.joinRequests
+            updatedRequests.append(joinRequest)
+            transaction.updateData([
+                "joinRequests": updatedRequests.map { $0.toFirestoreMap() }
+            ], forDocument: ref)
+            return nil
+        }
     }
 
     func approveJoinRequest(inviteId: String, requestId: String, userId: String) async throws {
@@ -247,7 +268,9 @@ class FirestoreService {
                 return nil
             }
             guard let data = doc.data(),
-                  var invite = OpenInvite(fromFirestore: data) else { return nil }
+                  var invite = OpenInvite(fromFirestore: data),
+                  invite.status == .open,
+                  invite.spotsRemaining > 0 else { return nil }
 
             guard let idx = invite.joinRequests.firstIndex(where: { $0.id == requestId }) else { return nil }
             invite.joinRequests[idx].status = .approved

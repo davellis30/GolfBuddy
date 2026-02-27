@@ -54,7 +54,7 @@ struct StatusDashboardView: View {
                             } else {
                                 LazyVStack(spacing: 10) {
                                     ForEach(invites) { invite in
-                                        NavigationLink(destination: InviteDetailView(invite: invite)) {
+                                        NavigationLink(destination: InviteDetailView(inviteId: invite.id)) {
                                             OpenInviteCard(invite: invite)
                                         }
                                         .buttonStyle(.plain)

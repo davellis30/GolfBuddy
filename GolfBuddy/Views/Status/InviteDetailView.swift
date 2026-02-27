@@ -2,16 +2,21 @@ import SwiftUI
 
 struct InviteDetailView: View {
     @EnvironmentObject var dataService: DataService
-    let invite: OpenInvite
+    let inviteId: String
+
+    private var invite: OpenInvite? {
+        dataService.openInvites.first { $0.id == inviteId }
+    }
 
     private var isCreator: Bool {
-        dataService.currentUser?.id == invite.creatorId
+        dataService.currentUser?.id == invite?.creatorId
     }
 
     var body: some View {
         ZStack {
             AppTheme.cream.ignoresSafeArea()
 
+            if let invite = invite {
             ScrollView {
                 VStack(spacing: 20) {
                     // Course + time slot header
@@ -158,7 +163,7 @@ struct InviteDetailView: View {
                         }
                     } else {
                         // Friend view
-                        friendActionSection
+                        friendActionSection(for: invite)
                     }
 
                     Spacer().frame(height: 40)
@@ -166,13 +171,24 @@ struct InviteDetailView: View {
                 .padding(.horizontal, 20)
                 .padding(.top, 12)
             }
+            } else {
+                VStack(spacing: 12) {
+                    Image(systemName: "xmark.circle")
+                        .font(.system(size: 36))
+                        .foregroundColor(AppTheme.mutedText)
+                    Text("This invite is no longer available")
+                        .font(AppTheme.bodyFont)
+                        .foregroundColor(AppTheme.mutedText)
+                }
+                .padding(.top, 60)
+            }
         }
         .navigationTitle("Invite Details")
         .navigationBarTitleDisplayMode(.inline)
     }
 
     @ViewBuilder
-    private var friendActionSection: some View {
+    private func friendActionSection(for invite: OpenInvite) -> some View {
         let currentId = dataService.currentUser?.id ?? ""
         let myRequest = invite.joinRequests.first { $0.userId == currentId }
         let isApproved = invite.approvedPlayerIds.contains(currentId)
