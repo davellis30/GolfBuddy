@@ -686,9 +686,6 @@ class DataService: ObservableObject, @unchecked Sendable {
     }
 
     func fetchFriendCalendar(userId: String) async -> [String: WeekendAvailability] {
-        if let cached = friendCalendarCache[userId] {
-            return cached
-        }
         do {
             if let entry = try await firestoreService.fetchCalendarEntries(userId: userId) {
                 await MainActor.run {

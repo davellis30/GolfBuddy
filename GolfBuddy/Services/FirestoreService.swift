@@ -326,7 +326,10 @@ class FirestoreService {
     }
 
     func clearCalendarEntry(userId: String, dateKey: String) async throws {
-        try await db.collection("calendarEntries").document(userId).updateData([
+        let ref = db.collection("calendarEntries").document(userId)
+        let doc = try await ref.getDocument()
+        guard doc.exists else { return }
+        try await ref.updateData([
             "entries.\(dateKey)": FieldValue.delete(),
             "updatedAt": FieldValue.serverTimestamp()
         ])

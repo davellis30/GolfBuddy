@@ -22,20 +22,29 @@ struct MonthCalendarGrid: View {
         let firstWeekday = calendar.component(.weekday, from: firstDay) // 1=Sun
 
         var cells: [DateCell] = []
+        var position = 0
 
         // Leading empty cells
         for _ in 0..<(firstWeekday - 1) {
-            cells.append(DateCell(date: nil, dayNumber: 0))
+            cells.append(DateCell(id: position, date: nil, dayNumber: 0))
+            position += 1
         }
 
         // Day cells
         for day in range {
-            if let date = calendar.date(bySetting: .day, value: day, of: firstDay) {
-                cells.append(DateCell(date: date, dayNumber: day))
+            if let date = calendar.date(byAdding: .day, value: day - 1, to: firstDay) {
+                cells.append(DateCell(id: position, date: date, dayNumber: day))
+                position += 1
             }
         }
 
         return cells
+    }
+
+    private var isCurrentMonth: Bool {
+        let now = Date()
+        return calendar.component(.year, from: displayMonth) == calendar.component(.year, from: now)
+            && calendar.component(.month, from: displayMonth) == calendar.component(.month, from: now)
     }
 
     private func isPast(_ date: Date) -> Bool {
@@ -57,9 +66,10 @@ struct MonthCalendarGrid: View {
                 } label: {
                     Image(systemName: "chevron.left")
                         .font(.system(size: 16, weight: .semibold))
-                        .foregroundColor(AppTheme.accentGreen)
+                        .foregroundColor(isCurrentMonth ? AppTheme.mutedText.opacity(0.3) : AppTheme.accentGreen)
                         .frame(width: 36, height: 36)
                 }
+                .disabled(isCurrentMonth)
 
                 Spacer()
 
@@ -141,7 +151,7 @@ struct MonthCalendarGrid: View {
 }
 
 private struct DateCell: Identifiable {
-    let id = UUID()
+    let id: Int // grid position (0-based)
     let date: Date?
     let dayNumber: Int
 }
