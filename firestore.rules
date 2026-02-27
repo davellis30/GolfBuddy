@@ -41,6 +41,19 @@ service cloud.firestore {
         && request.auth.uid == statusId;
     }
 
+    // Open Invites: visible friends can read, creator can create/cancel,
+    // visible friends can update (join requests)
+    match /openInvites/{inviteId} {
+      allow read: if request.auth != null
+        && request.auth.uid in resource.data.visibleToFriendIds;
+      allow create: if request.auth != null
+        && request.auth.uid == request.resource.data.creatorId;
+      allow update: if request.auth != null
+        && request.auth.uid in resource.data.visibleToFriendIds;
+      allow delete: if request.auth != null
+        && request.auth.uid == resource.data.creatorId;
+    }
+
     // Conversations: only participants can read/write
     match /conversations/{convoId} {
       allow read: if request.auth != null

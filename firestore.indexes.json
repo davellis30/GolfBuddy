@@ -7,6 +7,21 @@
         { "fieldPath": "participants", "arrayConfig": "CONTAINS" },
         { "fieldPath": "lastMessageTimestamp", "order": "DESCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "openInvites",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "visibleToFriendIds", "arrayConfig": "CONTAINS" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "openInvites",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "creatorId", "order": "ASCENDING" }
+      ]
     }
   ],
   "fieldOverrides": []
