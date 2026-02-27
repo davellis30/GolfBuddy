@@ -173,7 +173,7 @@ class FirebaseAuthService {
         )
     }
 
-    func updateUserProfile(firebaseUserId: String, handicap: Double?, homeCourse: String?) async throws {
+    func updateUserProfile(firebaseUserId: String, handicap: Double?, homeCourse: String?, cardColorTheme: String?, statusTagline: String?) async throws {
         var fields: [String: Any] = [:]
         if let handicap = handicap {
             fields["handicap"] = handicap
@@ -184,6 +184,16 @@ class FirebaseAuthService {
             fields["homeCourse"] = homeCourse
         } else {
             fields["homeCourse"] = FieldValue.delete()
+        }
+        if let cardColorTheme = cardColorTheme {
+            fields["cardColorTheme"] = cardColorTheme
+        } else {
+            fields["cardColorTheme"] = FieldValue.delete()
+        }
+        if let statusTagline = statusTagline, !statusTagline.isEmpty {
+            fields["statusTagline"] = statusTagline
+        } else {
+            fields["statusTagline"] = FieldValue.delete()
         }
 
         try await db.collection(usersCollection).document(firebaseUserId).updateData(fields)

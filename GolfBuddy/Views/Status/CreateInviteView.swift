@@ -64,7 +64,9 @@ struct CreateInviteView: View {
                             LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
                                 ForEach(DayTimeSlot.allSlots, id: \.self) { slot in
                                     Button {
-                                        selectedTimeSlot = selectedTimeSlot == slot ? nil : slot
+                                        withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                                            selectedTimeSlot = selectedTimeSlot == slot ? nil : slot
+                                        }
                                     } label: {
                                         Text(slot.label)
                                             .font(AppTheme.bodyFont.weight(.medium))
@@ -79,6 +81,7 @@ struct CreateInviteView: View {
                                                     .stroke(selectedTimeSlot == slot ? Color.clear : AppTheme.mutedText.opacity(0.3), lineWidth: 1)
                                             )
                                             .foregroundColor(selectedTimeSlot == slot ? .white : AppTheme.darkText)
+                                            .scaleEffect(selectedTimeSlot == slot ? 1.03 : 1.0)
                                     }
                                 }
                             }
@@ -94,7 +97,9 @@ struct CreateInviteView: View {
                             HStack(spacing: 12) {
                                 ForEach([2, 3, 4], id: \.self) { size in
                                     Button {
-                                        groupSize = size
+                                        withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                                            groupSize = size
+                                        }
                                     } label: {
                                         Text("\(size) players")
                                             .font(AppTheme.bodyFont.weight(.medium))
@@ -109,6 +114,7 @@ struct CreateInviteView: View {
                                                     .stroke(groupSize == size ? Color.clear : AppTheme.mutedText.opacity(0.3), lineWidth: 1)
                                             )
                                             .foregroundColor(groupSize == size ? .white : AppTheme.darkText)
+                                            .scaleEffect(groupSize == size ? 1.05 : 1.0)
                                     }
                                 }
                                 Spacer()
@@ -128,6 +134,8 @@ struct CreateInviteView: View {
                         .buttonStyle(GreenButtonStyle())
                         .disabled(selectedCourse.isEmpty || selectedTimeSlot == nil)
                         .opacity(selectedCourse.isEmpty || selectedTimeSlot == nil ? 0.5 : 1.0)
+                        .scaleEffect(selectedCourse.isEmpty || selectedTimeSlot == nil ? 0.97 : 1.0)
+                        .animation(.spring(response: 0.3, dampingFraction: 0.7), value: selectedCourse.isEmpty || selectedTimeSlot == nil)
 
                         Spacer().frame(height: 20)
                     }

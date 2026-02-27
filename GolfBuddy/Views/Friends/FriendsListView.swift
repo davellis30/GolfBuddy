@@ -216,6 +216,13 @@ struct FriendRow: View {
                     .font(AppTheme.captionFont)
                     .foregroundColor(AppTheme.mutedText)
 
+                if let tagline = friend.statusTagline, !tagline.isEmpty {
+                    Text(tagline)
+                        .font(.system(size: 12, weight: .regular, design: .rounded))
+                        .foregroundColor(friend.themeColor.color)
+                        .lineLimit(1)
+                }
+
                 if let handicap = friend.handicap {
                     Text("Hdcp \(handicap, specifier: "%.1f")")
                         .font(AppTheme.captionFont)
@@ -265,5 +272,14 @@ struct FriendRow: View {
             }
         }
         .cardStyle()
+        .overlay(
+            HStack {
+                RoundedRectangle(cornerRadius: 2)
+                    .fill(friend.themeColor.color)
+                    .frame(width: 4)
+                Spacer()
+            }
+            .padding(.vertical, 8)
+        )
     }
 }

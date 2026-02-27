@@ -3,6 +3,7 @@ import SwiftUI
 struct InviteDetailView: View {
     @EnvironmentObject var dataService: DataService
     let inviteId: String
+    @State private var appearedSections: Set<Int> = []
 
     private var invite: OpenInvite? {
         dataService.openInvites.first { $0.id == inviteId }
@@ -10,6 +11,15 @@ struct InviteDetailView: View {
 
     private var isCreator: Bool {
         dataService.currentUser?.id == invite?.creatorId
+    }
+
+    private func sectionAppear(_ section: Int) -> some View {
+        Color.clear.onAppear {
+            guard !appearedSections.contains(section) else { return }
+            withAnimation(.spring(response: 0.4, dampingFraction: 0.8).delay(Double(section) * 0.08)) {
+                appearedSections.insert(section)
+            }
+        }
     }
 
     var body: some View {
@@ -50,6 +60,9 @@ struct InviteDetailView: View {
                         }
                     }
                     .cardStyle()
+                    .opacity(appearedSections.contains(0) ? 1 : 0)
+                    .offset(y: appearedSections.contains(0) ? 0 : 15)
+                    .background(sectionAppear(0))
 
                     // Creator info
                     HStack(spacing: 12) {
@@ -65,6 +78,9 @@ struct InviteDetailView: View {
                         Spacer()
                     }
                     .cardStyle()
+                    .opacity(appearedSections.contains(1) ? 1 : 0)
+                    .offset(y: appearedSections.contains(1) ? 0 : 15)
+                    .background(sectionAppear(1))
 
                     // Spots visual
                     VStack(alignment: .leading, spacing: 10) {
@@ -77,6 +93,7 @@ struct InviteDetailView: View {
                             ForEach(0..<invite.groupSize, id: \.self) { index in
                                 if index < invite.approvedPlayerIds.count {
                                     AvatarView(userId: invite.approvedPlayerIds[index], size: 44)
+                                        .transition(.scale.combined(with: .opacity))
                                 } else {
                                     Circle()
                                         .strokeBorder(AppTheme.mutedText.opacity(0.3), lineWidth: 2)
@@ -90,6 +107,7 @@ struct InviteDetailView: View {
                             }
                             Spacer()
                         }
+                        .animation(.spring(response: 0.4, dampingFraction: 0.7), value: invite.approvedPlayerIds.count)
 
                         ForEach(invite.approvedPlayerIds, id: \.self) { playerId in
                             HStack(spacing: 8) {
@@ -104,6 +122,9 @@ struct InviteDetailView: View {
                         }
                     }
                     .cardStyle()
+                    .opacity(appearedSections.contains(2) ? 1 : 0)
+                    .offset(y: appearedSections.contains(2) ? 0 : 15)
+                    .background(sectionAppear(2))
 
                     // Creator view: pending requests
                     if isCreator {
@@ -132,7 +153,9 @@ struct InviteDetailView: View {
 
                                         HStack(spacing: 8) {
                                             Button {
-                                                dataService.approveJoinRequest(invite: invite, request: request)
+                                                withAnimation(.spring(response: 0.35, dampingFraction: 0.7)) {
+                                                    dataService.approveJoinRequest(invite: invite, request: request)
+                                                }
                                             } label: {
                                                 Image(systemName: "checkmark.circle.fill")
                                                     .font(.system(size: 28))
@@ -140,7 +163,9 @@ struct InviteDetailView: View {
                                             }
 
                                             Button {
-                                                dataService.declineJoinRequest(invite: invite, request: request)
+                                                withAnimation(.spring(response: 0.35, dampingFraction: 0.7)) {
+                                                    dataService.declineJoinRequest(invite: invite, request: request)
+                                                }
                                             } label: {
                                                 Image(systemName: "xmark.circle.fill")
                                                     .font(.system(size: 28))
@@ -149,14 +174,23 @@ struct InviteDetailView: View {
                                         }
                                     }
                                     .cardStyle()
+                                    .transition(.asymmetric(
+                                        insertion: .opacity.combined(with: .offset(y: 10)),
+                                        removal: .opacity.combined(with: .offset(x: -20))
+                                    ))
                                 }
                             }
+                            .opacity(appearedSections.contains(3) ? 1 : 0)
+                            .offset(y: appearedSections.contains(3) ? 0 : 15)
+                            .background(sectionAppear(3))
                         }
 
                         // Cancel invite button
                         if invite.status != .cancelled {
                             Button("Cancel Invite") {
-                                dataService.cancelOpenInvite(invite)
+                                withAnimation(.easeOut(duration: 0.25)) {
+                                    dataService.cancelOpenInvite(invite)
+                                }
                             }
                             .buttonStyle(OutlineButtonStyle())
                             .foregroundColor(AppTheme.statusSeeking)
@@ -164,6 +198,9 @@ struct InviteDetailView: View {
                     } else {
                         // Friend view
                         friendActionSection(for: invite)
+                            .opacity(appearedSections.contains(3) ? 1 : 0)
+                            .offset(y: appearedSections.contains(3) ? 0 : 15)
+                            .background(sectionAppear(3))
                     }
 
                     Spacer().frame(height: 40)

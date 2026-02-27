@@ -53,11 +53,16 @@ struct StatusDashboardView: View {
                                     .padding(.vertical, 4)
                             } else {
                                 LazyVStack(spacing: 10) {
-                                    ForEach(invites) { invite in
+                                    ForEach(Array(invites.enumerated()), id: \.element.id) { index, invite in
                                         NavigationLink(destination: InviteDetailView(inviteId: invite.id)) {
                                             OpenInviteCard(invite: invite)
                                         }
                                         .buttonStyle(.plain)
+                                        .transition(.asymmetric(
+                                            insertion: .opacity.combined(with: .offset(y: 10)),
+                                            removal: .opacity
+                                        ))
+                                        .animation(.spring(response: 0.35, dampingFraction: 0.8).delay(Double(index) * 0.06), value: invites.count)
                                     }
                                 }
                             }
@@ -261,6 +266,13 @@ struct FriendStatusCard: View {
                         .font(AppTheme.bodyFont.weight(.semibold))
                         .foregroundColor(AppTheme.darkText)
 
+                    if let tagline = friend.statusTagline, !tagline.isEmpty {
+                        Text(tagline)
+                            .font(.system(size: 12, weight: .regular, design: .rounded))
+                            .foregroundColor(friend.themeColor.color)
+                            .lineLimit(1)
+                    }
+
                     HStack(spacing: 4) {
                         Image(systemName: status.availability.icon)
                             .font(.system(size: 11))
@@ -331,6 +343,15 @@ struct FriendStatusCard: View {
             }
         }
         .cardStyle()
+        .overlay(
+            HStack {
+                RoundedRectangle(cornerRadius: 2)
+                    .fill(friend.themeColor.color)
+                    .frame(width: 4)
+                Spacer()
+            }
+            .padding(.vertical, 8)
+        )
     }
 }
 

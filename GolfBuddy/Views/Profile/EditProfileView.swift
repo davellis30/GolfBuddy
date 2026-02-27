@@ -11,6 +11,8 @@ struct EditProfileView: View {
     @State private var selectedPhotoData: Data?
     @State private var isSaving = false
     @State private var photoRemoved = false
+    @State private var selectedTheme: CardColorTheme = .classicGreen
+    @State private var taglineText: String = ""
 
     var body: some View {
         NavigationStack {
@@ -115,6 +117,73 @@ struct EditProfileView: View {
                             }
                         }
 
+                        // Card Theme
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Card Theme")
+                                .font(AppTheme.captionFont)
+                                .foregroundColor(AppTheme.mutedText)
+
+                            HStack(spacing: 14) {
+                                ForEach(CardColorTheme.allCases, id: \.self) { theme in
+                                    Button {
+                                        withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                                            selectedTheme = theme
+                                        }
+                                    } label: {
+                                        ZStack {
+                                            Circle()
+                                                .fill(theme.color)
+                                                .frame(width: 40, height: 40)
+                                            if selectedTheme == theme {
+                                                Image(systemName: "checkmark")
+                                                    .font(.system(size: 14, weight: .bold))
+                                                    .foregroundColor(.white)
+                                            }
+                                        }
+                                        .scaleEffect(selectedTheme == theme ? 1.1 : 1.0)
+                                    }
+                                }
+                                Spacer()
+                            }
+
+                            Text(selectedTheme.label)
+                                .font(.system(size: 11, weight: .medium, design: .rounded))
+                                .foregroundColor(selectedTheme.color)
+                        }
+
+                        // Status Tagline
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Status Tagline")
+                                .font(AppTheme.captionFont)
+                                .foregroundColor(AppTheme.mutedText)
+
+                            HStack(spacing: 12) {
+                                Image(systemName: "text.quote")
+                                    .foregroundColor(AppTheme.accentGreen)
+                                    .frame(width: 20)
+                                TextField("e.g. Always down for 9 holes", text: $taglineText)
+                                    .font(AppTheme.bodyFont)
+                                    .onChange(of: taglineText) { _, newValue in
+                                        if newValue.count > 40 {
+                                            taglineText = String(newValue.prefix(40))
+                                        }
+                                    }
+                            }
+                            .padding(14)
+                            .background(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .fill(AppTheme.inputBackground)
+                                    .shadow(color: AppTheme.subtleShadow, radius: 4, x: 0, y: 2)
+                            )
+
+                            HStack {
+                                Spacer()
+                                Text("\(taglineText.count)/40")
+                                    .font(.system(size: 11, design: .rounded))
+                                    .foregroundColor(taglineText.count >= 40 ? AppTheme.statusSeeking : AppTheme.mutedText)
+                            }
+                        }
+
                         Button(action: saveChanges) {
                             if isSaving {
                                 ProgressView()
@@ -144,6 +213,8 @@ struct EditProfileView: View {
                     handicapText = String(format: "%.1f", h)
                 }
                 selectedCourse = dataService.currentUser?.homeCourse ?? ""
+                selectedTheme = dataService.currentUser?.themeColor ?? .classicGreen
+                taglineText = dataService.currentUser?.statusTagline ?? ""
             }
             .onChange(of: selectedPhotoItem) { _, newItem in
                 Task {
@@ -172,7 +243,9 @@ struct EditProfileView: View {
             let handicap = Double(handicapText)
             try? await dataService.updateProfile(
                 handicap: handicap,
-                homeCourse: selectedCourse.isEmpty ? nil : selectedCourse
+                homeCourse: selectedCourse.isEmpty ? nil : selectedCourse,
+                cardColorTheme: selectedTheme.rawValue,
+                statusTagline: taglineText.trimmingCharacters(in: .whitespaces)
             )
 
             await MainActor.run {

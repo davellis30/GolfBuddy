@@ -172,10 +172,12 @@ class DataService: ObservableObject, @unchecked Sendable {
         await startListeners()
     }
 
-    func updateProfile(handicap: Double?, homeCourse: String?) async throws {
+    func updateProfile(handicap: Double?, homeCourse: String?, cardColorTheme: String? = nil, statusTagline: String? = nil) async throws {
         guard var user = currentUser else { return }
         user.handicap = handicap
         user.homeCourse = homeCourse
+        user.cardColorTheme = cardColorTheme
+        user.statusTagline = statusTagline
         currentUser = user
         if let idx = allUsers.firstIndex(where: { $0.id == user.id }) {
             allUsers[idx] = user
@@ -183,7 +185,9 @@ class DataService: ObservableObject, @unchecked Sendable {
         try await FirebaseAuthService.shared.updateUserProfile(
             firebaseUserId: user.id,
             handicap: handicap,
-            homeCourse: homeCourse
+            homeCourse: homeCourse,
+            cardColorTheme: cardColorTheme,
+            statusTagline: statusTagline
         )
     }
 

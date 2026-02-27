@@ -21,6 +21,12 @@ struct FriendProfileView: View {
                         Text("@\(user.username)")
                             .font(AppTheme.captionFont)
                             .foregroundColor(AppTheme.mutedText)
+
+                        if let tagline = user.statusTagline, !tagline.isEmpty {
+                            Text(tagline)
+                                .font(.system(size: 13, weight: .medium, design: .rounded))
+                                .foregroundColor(user.themeColor.color)
+                        }
                     }
                     .padding(.top, 20)
 
