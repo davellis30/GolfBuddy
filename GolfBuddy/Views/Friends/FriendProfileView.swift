@@ -3,6 +3,7 @@ import SwiftUI
 struct FriendProfileView: View {
     @EnvironmentObject var dataService: DataService
     let user: User
+    @State private var friendCount: Int?
 
     var body: some View {
         ZStack {
@@ -22,7 +23,7 @@ struct FriendProfileView: View {
                             .font(AppTheme.captionFont)
                             .foregroundColor(AppTheme.mutedText)
 
-                        if let tagline = user.statusTagline, !tagline.isEmpty {
+                        if let tagline = user.activeTagline {
                             Text(tagline)
                                 .font(.system(size: 13, weight: .medium, design: .rounded))
                                 .foregroundColor(user.themeColor.color)
@@ -46,7 +47,7 @@ struct FriendProfileView: View {
                         Divider()
                         ProfileStatRow(
                             label: "Friends",
-                            value: "\(dataService.friends(of: user.id).count)",
+                            value: friendCount.map { "\($0)" } ?? "—",
                             icon: "person.2.fill"
                         )
                     }
@@ -123,5 +124,8 @@ struct FriendProfileView: View {
         }
         .navigationTitle(user.displayName)
         .navigationBarTitleDisplayMode(.inline)
+        .task {
+            friendCount = try? await FirestoreService.shared.fetchFriendCount(userId: user.id)
+        }
     }
 }

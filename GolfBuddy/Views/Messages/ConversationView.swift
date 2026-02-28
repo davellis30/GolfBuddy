@@ -78,8 +78,16 @@ struct ConversationView: View {
             }
         }
         .background(AppTheme.cream.ignoresSafeArea())
-        .navigationTitle(friend.displayName)
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .principal) {
+                NavigationLink(destination: FriendProfileView(user: friend)) {
+                    Text(friend.displayName)
+                        .font(.system(size: 17, weight: .semibold, design: .rounded))
+                        .foregroundColor(AppTheme.darkText)
+                }
+            }
+        }
     }
 
     private func sendMessage() {

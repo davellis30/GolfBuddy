@@ -1,5 +1,6 @@
 import Foundation
 import SwiftUI
+import FirebaseFirestore
 
 enum CardColorTheme: String, CaseIterable, Codable {
     case classicGreen = "classicGreen"
@@ -39,6 +40,25 @@ struct User: Identifiable, Codable, Hashable {
     var profilePhotoUrl: String?
     var cardColorTheme: String?
     var statusTagline: String?
+    var taglineExpiresAt: Date?
+
+    var activeTagline: String? {
+        guard let tagline = statusTagline, !tagline.isEmpty else { return nil }
+        if let expiresAt = taglineExpiresAt, Date() >= expiresAt {
+            return nil
+        }
+        return tagline
+    }
+
+    /// End of the upcoming Sunday (Monday 00:00). If today is Sunday, targets next Sunday.
+    static func taglineExpiry() -> Date {
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+        let weekday = calendar.component(.weekday, from: today)
+        let daysUntilSunday = weekday == 1 ? 7 : (8 - weekday)
+        let nextSunday = calendar.date(byAdding: .day, value: daysUntilSunday, to: today)!
+        return calendar.date(byAdding: .day, value: 1, to: nextSunday)!
+    }
 
     var avatarInitials: String {
         let parts = displayName.split(separator: " ")
@@ -76,5 +96,6 @@ extension User {
         self.profilePhotoUrl = data["profilePhotoUrl"] as? String
         self.cardColorTheme = data["cardColorTheme"] as? String
         self.statusTagline = data["statusTagline"] as? String
+        self.taglineExpiresAt = (data["taglineExpiresAt"] as? Timestamp)?.dateValue()
     }
 }

@@ -178,6 +178,11 @@ class DataService: ObservableObject, @unchecked Sendable {
         user.homeCourse = homeCourse
         user.cardColorTheme = cardColorTheme
         user.statusTagline = statusTagline
+        if let tagline = statusTagline, !tagline.isEmpty {
+            user.taglineExpiresAt = User.taglineExpiry()
+        } else {
+            user.taglineExpiresAt = nil
+        }
         currentUser = user
         if let idx = allUsers.firstIndex(where: { $0.id == user.id }) {
             allUsers[idx] = user
@@ -187,7 +192,8 @@ class DataService: ObservableObject, @unchecked Sendable {
             handicap: handicap,
             homeCourse: homeCourse,
             cardColorTheme: cardColorTheme,
-            statusTagline: statusTagline
+            statusTagline: statusTagline,
+            taglineExpiresAt: user.taglineExpiresAt
         )
     }
 
@@ -195,13 +201,15 @@ class DataService: ObservableObject, @unchecked Sendable {
         guard var user = currentUser else { return }
         let trimmed = tagline.trimmingCharacters(in: .whitespaces)
         user.statusTagline = trimmed.isEmpty ? nil : trimmed
+        user.taglineExpiresAt = trimmed.isEmpty ? nil : User.taglineExpiry()
         currentUser = user
         if let idx = allUsers.firstIndex(where: { $0.id == user.id }) {
             allUsers[idx] = user
         }
         try await FirebaseAuthService.shared.updateStatusTagline(
             firebaseUserId: user.id,
-            tagline: trimmed
+            tagline: trimmed,
+            expiresAt: user.taglineExpiresAt
         )
     }
 
@@ -233,13 +241,17 @@ class DataService: ObservableObject, @unchecked Sendable {
 
         firestoreService.startOpenInvitesListener(userId: userId) { @Sendable [weak self] invites in
             DispatchQueue.main.async {
-                self?.openInvites = invites
+                guard let self = self else { return }
+                // Preserve locally-created invites not yet synced to Firestore
+                let firestoreIds = Set(invites.map { $0.id })
+                let pendingLocal = self.openInvites.filter { !firestoreIds.contains($0.id) && $0.creatorId == userId }
+                self.openInvites = invites + pendingLocal
                 let userIds = Set(
-                    invites.flatMap { invite in
+                    self.openInvites.flatMap { invite in
                         [invite.creatorId] + invite.approvedPlayerIds + invite.joinRequests.map { $0.userId }
                     }
                 )
-                self?.fetchMissingUserProfiles(friendIds: userIds)
+                self.fetchMissingUserProfiles(friendIds: userIds)
             }
         }
 
@@ -654,8 +666,14 @@ class DataService: ObservableObject, @unchecked Sendable {
     }
 
     func visibleOpenInvites() -> [OpenInvite] {
-        let startOfToday = Calendar.current.startOfDay(for: Date())
-        return openInvites.filter { $0.status != .cancelled && $0.weekendDate >= startOfToday }
+        let calendar = Calendar.current
+        let startOfToday = calendar.startOfDay(for: Date())
+        return openInvites.filter { invite in
+            guard invite.status != .cancelled else { return false }
+            // Keep invites visible through end of Sunday (weekendDate is Saturday midnight)
+            let endOfWeekend = calendar.date(byAdding: .day, value: 2, to: invite.weekendDate) ?? invite.weekendDate
+            return endOfWeekend > startOfToday
+        }
     }
 
     // MARK: - Calendar

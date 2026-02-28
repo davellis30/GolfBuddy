@@ -59,6 +59,10 @@
 		F32E89CDB6025CCDD73D5374 /* MainTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A54AD665CC3C5E2F2B7F9C0 /* MainTabView.swift */; };
 		F659AA1305D2FD182B7B1F5C /* AddFriendView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F172B37D34572C9BC52B7F9F /* AddFriendView.swift */; };
 		FF2B3D4E5F607182930020 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = EE2B3D4E5F607182930020 /* Assets.xcassets */; };
+		AB11223344556677AACC0001 /* AppIcon60x60@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = AB11223344556677AABB0001 /* AppIcon60x60@2x.png */; };
+		AB11223344556677AACC0002 /* AppIcon60x60@3x.png in Resources */ = {isa = PBXBuildFile; fileRef = AB11223344556677AABB0002 /* AppIcon60x60@3x.png */; };
+		AB11223344556677AACC0003 /* AppIcon76x76@1x.png in Resources */ = {isa = PBXBuildFile; fileRef = AB11223344556677AABB0003 /* AppIcon76x76@1x.png */; };
+		AB11223344556677AACC0004 /* AppIcon76x76@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = AB11223344556677AABB0004 /* AppIcon76x76@2x.png */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -112,6 +116,10 @@
 		FF1B2C3D4E5F607182930070 /* CalendarEntry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarEntry.swift; sourceTree = "<group>"; };
 		FF1B2C3D4E5F607182930072 /* CalendarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarView.swift; sourceTree = "<group>"; };
 		FF1B2C3D4E5F607182930074 /* FriendCalendarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FriendCalendarView.swift; sourceTree = "<group>"; };
+		AB11223344556677AABB0001 /* AppIcon60x60@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "AppIcon60x60@2x.png"; sourceTree = "<group>"; };
+		AB11223344556677AABB0002 /* AppIcon60x60@3x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "AppIcon60x60@3x.png"; sourceTree = "<group>"; };
+		AB11223344556677AABB0003 /* AppIcon76x76@1x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "AppIcon76x76@1x.png"; sourceTree = "<group>"; };
+		AB11223344556677AABB0004 /* AppIcon76x76@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "AppIcon76x76@2x.png"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -297,6 +305,10 @@
 			children = (
 				5566B8CA2F3D80D1008701EA /* GoogleService-Info.plist */,
 				EE2B3D4E5F607182930020 /* Assets.xcassets */,
+				AB11223344556677AABB0001 /* AppIcon60x60@2x.png */,
+				AB11223344556677AABB0002 /* AppIcon60x60@3x.png */,
+				AB11223344556677AABB0003 /* AppIcon76x76@1x.png */,
+				AB11223344556677AABB0004 /* AppIcon76x76@2x.png */,
 				E42F41CBC575683D4DF6AB97 /* App */,
 				27D613A6F937DE785B4FC703 /* Models */,
 				F65A1D1B05377B48B5E6651F /* Services */,
@@ -389,6 +401,10 @@
 				77F0C3F833F7869DAB2241FB /* courses.json in Resources */,
 				5566B8CB2F3D80D1008701EA /* GoogleService-Info.plist in Resources */,
 				FF2B3D4E5F607182930020 /* Assets.xcassets in Resources */,
+				AB11223344556677AACC0001 /* AppIcon60x60@2x.png in Resources */,
+				AB11223344556677AACC0002 /* AppIcon60x60@3x.png in Resources */,
+				AB11223344556677AACC0003 /* AppIcon76x76@1x.png in Resources */,
+				AB11223344556677AACC0004 /* AppIcon76x76@2x.png in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -454,20 +470,21 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = GolfBuddy/GolfBuddy.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
+				CURRENT_PROJECT_VERSION = 4;
 				DEVELOPMENT_TEAM = A34PMQ48MA;
-				GENERATE_INFOPLIST_FILE = NO;
+				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = GolfBuddy/Info.plist;
-				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = GolfBuddy;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.sports";
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
-				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 2.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.golfbuddy.app;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -531,22 +548,23 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
 				CODE_SIGN_ENTITLEMENTS = GolfBuddy/GolfBuddy.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 4;
 				DEVELOPMENT_TEAM = A34PMQ48MA;
-				GENERATE_INFOPLIST_FILE = NO;
+				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = GolfBuddy/Info.plist;
-				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = GolfBuddy;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.sports";
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
-				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 2.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.golfbuddy.app;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;

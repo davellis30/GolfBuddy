@@ -216,7 +216,7 @@ struct FriendRow: View {
                     .font(AppTheme.captionFont)
                     .foregroundColor(AppTheme.mutedText)
 
-                if let tagline = friend.statusTagline, !tagline.isEmpty {
+                if let tagline = friend.activeTagline {
                     Text(tagline)
                         .font(.system(size: 12, weight: .regular, design: .rounded))
                         .foregroundColor(friend.themeColor.color)

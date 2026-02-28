@@ -313,7 +313,7 @@ struct StatusDashboardView: View {
             }
         } else {
             Button {
-                taglineText = dataService.currentUser?.statusTagline ?? ""
+                taglineText = dataService.currentUser?.activeTagline ?? ""
                 isEditingTagline = true
                 taglineFocused = true
             } label: {
@@ -321,7 +321,7 @@ struct StatusDashboardView: View {
                     Image(systemName: "text.quote")
                         .font(.system(size: 13))
                         .foregroundColor(myThemeColor.color)
-                    if let tagline = dataService.currentUser?.statusTagline, !tagline.isEmpty {
+                    if let tagline = dataService.currentUser?.activeTagline {
                         Text(tagline)
                             .font(.system(size: 13, weight: .medium, design: .rounded))
                             .foregroundColor(myThemeColor.color)
@@ -343,7 +343,7 @@ struct StatusDashboardView: View {
         isEditingTagline = false
         taglineFocused = false
         let trimmed = taglineText.trimmingCharacters(in: .whitespaces)
-        let current = dataService.currentUser?.statusTagline ?? ""
+        let current = dataService.currentUser?.activeTagline ?? ""
         guard trimmed != current else { return }
         Task {
             try? await dataService.updateTagline(trimmed)
@@ -366,7 +366,7 @@ struct FriendStatusCard: View {
                         .font(AppTheme.bodyFont.weight(.semibold))
                         .foregroundColor(AppTheme.darkText)
 
-                    if let tagline = friend.statusTagline, !tagline.isEmpty {
+                    if let tagline = friend.activeTagline {
                         Text(tagline)
                             .font(.system(size: 12, weight: .regular, design: .rounded))
                             .foregroundColor(friend.themeColor.color)

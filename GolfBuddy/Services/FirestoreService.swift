@@ -145,6 +145,13 @@ class FirestoreService {
 
     // MARK: - Friendships
 
+    func fetchFriendCount(userId: String) async throws -> Int {
+        let snapshot = try await db.collection("friendships")
+            .whereField("userIds", arrayContains: userId)
+            .getDocuments()
+        return snapshot.documents.count
+    }
+
     func startFriendshipsListener(userId: String, onChange: @escaping (Set<String>) -> Void) {
         removeListener(named: "friendships")
 
@@ -318,11 +325,21 @@ class FirestoreService {
     }
 
     func setCalendarEntry(userId: String, dateKey: String, availability: WeekendAvailability) async throws {
-        try await db.collection("calendarEntries").document(userId).setData([
-            "userId": userId,
-            "entries.\(dateKey)": availability.rawValue,
-            "updatedAt": FieldValue.serverTimestamp()
-        ], merge: true)
+        let ref = db.collection("calendarEntries").document(userId)
+        do {
+            // updateData treats dot-notation as nested paths: entries -> dateKey
+            try await ref.updateData([
+                "entries.\(dateKey)": availability.rawValue,
+                "updatedAt": FieldValue.serverTimestamp()
+            ])
+        } catch {
+            // Document doesn't exist yet — create it with proper nested structure
+            try await ref.setData([
+                "userId": userId,
+                "entries": [dateKey: availability.rawValue],
+                "updatedAt": FieldValue.serverTimestamp()
+            ])
+        }
     }
 
     func clearCalendarEntry(userId: String, dateKey: String) async throws {
@@ -390,6 +407,8 @@ class FirestoreService {
 
         let batch = db.batch()
 
+        // Use mergeFields with dot-notation path so unreadCounts is a proper nested map
+        // (setData merge:true treats dots as literal field names, not nested paths)
         let convoRef = db.collection("conversations").document(convoId)
         batch.setData([
             "participants": [senderId, receiverId].sorted(),
@@ -399,8 +418,13 @@ class FirestoreService {
                 "timestamp": timestamp
             ],
             "lastMessageTimestamp": timestamp,
-            "unreadCounts.\(receiverId)": FieldValue.increment(Int64(1))
-        ], forDocument: convoRef, merge: true)
+            "unreadCounts": [receiverId: FieldValue.increment(Int64(1))]
+        ], forDocument: convoRef, mergeFields: [
+            "participants",
+            "lastMessage",
+            "lastMessageTimestamp",
+            "unreadCounts.\(receiverId)"
+        ])
 
         let messageRef = convoRef.collection("messages").document(messageId)
         batch.setData([

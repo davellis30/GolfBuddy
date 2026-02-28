@@ -93,7 +93,7 @@ struct MonthCalendarGrid: View {
 
             // Day-of-week headers
             LazyVGrid(columns: columns, spacing: 8) {
-                ForEach(dayLabels, id: \.self) { label in
+                ForEach(Array(dayLabels.enumerated()), id: \.offset) { _, label in
                     Text(label)
                         .font(.system(size: 12, weight: .semibold, design: .rounded))
                         .foregroundColor(AppTheme.mutedText)

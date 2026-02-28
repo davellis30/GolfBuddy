@@ -214,7 +214,7 @@ struct EditProfileView: View {
                 }
                 selectedCourse = dataService.currentUser?.homeCourse ?? ""
                 selectedTheme = dataService.currentUser?.themeColor ?? .classicGreen
-                taglineText = dataService.currentUser?.statusTagline ?? ""
+                taglineText = dataService.currentUser?.activeTagline ?? ""
             }
             .onChange(of: selectedPhotoItem) { _, newItem in
                 Task {

@@ -132,10 +132,17 @@ struct WeekendStatus: Identifiable, Codable {
         let calendar = Calendar.current
         let today = Date()
         let weekday = calendar.component(.weekday, from: today)
-        // Saturday = 7
-        let daysUntilSaturday = (7 - weekday + 7) % 7
+        // Saturday = 7, Sunday = 1
+        let daysUntilSaturday: Int
+        if weekday == 1 {
+            // Sunday — treat as current weekend (return yesterday's Saturday)
+            daysUntilSaturday = -1
+        } else {
+            daysUntilSaturday = (7 - weekday + 7) % 7
+        }
         let offset = daysUntilSaturday == 0 ? 0 : daysUntilSaturday
-        return calendar.date(byAdding: .day, value: offset, to: today) ?? today
+        let target = calendar.date(byAdding: .day, value: offset, to: today) ?? today
+        return calendar.startOfDay(for: target)
     }
 
     static func weekendLabel() -> String {

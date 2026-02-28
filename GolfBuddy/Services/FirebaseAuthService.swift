@@ -169,11 +169,14 @@ class FirebaseAuthService {
             email: data["email"] as? String ?? "",
             handicap: data["handicap"] as? Double,
             homeCourse: data["homeCourse"] as? String,
-            profilePhotoUrl: data["profilePhotoUrl"] as? String
+            profilePhotoUrl: data["profilePhotoUrl"] as? String,
+            cardColorTheme: data["cardColorTheme"] as? String,
+            statusTagline: data["statusTagline"] as? String,
+            taglineExpiresAt: (data["taglineExpiresAt"] as? Timestamp)?.dateValue()
         )
     }
 
-    func updateUserProfile(firebaseUserId: String, handicap: Double?, homeCourse: String?, cardColorTheme: String?, statusTagline: String?) async throws {
+    func updateUserProfile(firebaseUserId: String, handicap: Double?, homeCourse: String?, cardColorTheme: String?, statusTagline: String?, taglineExpiresAt: Date? = nil) async throws {
         var fields: [String: Any] = [:]
         if let handicap = handicap {
             fields["handicap"] = handicap
@@ -192,22 +195,29 @@ class FirebaseAuthService {
         }
         if let statusTagline = statusTagline, !statusTagline.isEmpty {
             fields["statusTagline"] = statusTagline
+            if let expiresAt = taglineExpiresAt {
+                fields["taglineExpiresAt"] = Timestamp(date: expiresAt)
+            }
         } else {
             fields["statusTagline"] = FieldValue.delete()
+            fields["taglineExpiresAt"] = FieldValue.delete()
         }
 
         try await db.collection(usersCollection).document(firebaseUserId).updateData(fields)
     }
 
-    func updateStatusTagline(firebaseUserId: String, tagline: String) async throws {
+    func updateStatusTagline(firebaseUserId: String, tagline: String, expiresAt: Date? = nil) async throws {
         if tagline.isEmpty {
             try await db.collection(usersCollection).document(firebaseUserId).updateData([
-                "statusTagline": FieldValue.delete()
+                "statusTagline": FieldValue.delete(),
+                "taglineExpiresAt": FieldValue.delete()
             ])
         } else {
-            try await db.collection(usersCollection).document(firebaseUserId).updateData([
-                "statusTagline": tagline
-            ])
+            var fields: [String: Any] = ["statusTagline": tagline]
+            if let expiresAt = expiresAt {
+                fields["taglineExpiresAt"] = Timestamp(date: expiresAt)
+            }
+            try await db.collection(usersCollection).document(firebaseUserId).updateData(fields)
         }
     }
 
