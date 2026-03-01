@@ -15,6 +15,7 @@ struct LoginView: View {
     @State private var showForgotPassword = false
     @State private var resetEmail = ""
     @State private var showResetConfirmation = false
+    @State private var phoneNumber = ""
 
     var body: some View {
         ZStack {
@@ -50,6 +51,8 @@ struct LoginView: View {
                             FormField(icon: "person.fill", placeholder: "Display Name", text: $displayName)
                             FormField(icon: "at", placeholder: "Username", text: $username)
                                 .textInputAutocapitalization(.never)
+                            FormField(icon: "phone.fill", placeholder: "Phone (optional)", text: $phoneNumber)
+                                .keyboardType(.phonePad)
                         }
 
                         FormField(icon: "envelope.fill", placeholder: "Email", text: $email)
@@ -238,7 +241,8 @@ struct LoginView: View {
                         username: username,
                         displayName: displayName,
                         email: email,
-                        password: password
+                        password: password,
+                        phoneNumber: phoneNumber.isEmpty ? nil : phoneNumber
                     )
                 } else {
                     guard !email.isEmpty, !password.isEmpty else {

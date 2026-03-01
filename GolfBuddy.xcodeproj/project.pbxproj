@@ -52,6 +52,7 @@
 		EE1B2C3D4E5F607182930060 /* OpenInvite.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE1B2C3D4E5F607182930061 /* OpenInvite.swift */; };
 		EE1B2C3D4E5F607182930062 /* CreateInviteView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE1B2C3D4E5F607182930063 /* CreateInviteView.swift */; };
 		EE1B2C3D4E5F607182930064 /* InviteDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE1B2C3D4E5F607182930065 /* InviteDetailView.swift */; };
+		EE1B2C3D4E5F607182930066 /* InviteFriendPickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE1B2C3D4E5F607182930067 /* InviteFriendPickerView.swift */; };
 		FF1B2C3D4E5F607182930071 /* CalendarEntry.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF1B2C3D4E5F607182930070 /* CalendarEntry.swift */; };
 		FF1B2C3D4E5F607182930073 /* CalendarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF1B2C3D4E5F607182930072 /* CalendarView.swift */; };
 		FF1B2C3D4E5F607182930075 /* FriendCalendarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF1B2C3D4E5F607182930074 /* FriendCalendarView.swift */; };
@@ -113,6 +114,7 @@
 		EE1B2C3D4E5F607182930061 /* OpenInvite.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenInvite.swift; sourceTree = "<group>"; };
 		EE1B2C3D4E5F607182930063 /* CreateInviteView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreateInviteView.swift; sourceTree = "<group>"; };
 		EE1B2C3D4E5F607182930065 /* InviteDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InviteDetailView.swift; sourceTree = "<group>"; };
+		EE1B2C3D4E5F607182930067 /* InviteFriendPickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InviteFriendPickerView.swift; sourceTree = "<group>"; };
 		FF1B2C3D4E5F607182930070 /* CalendarEntry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarEntry.swift; sourceTree = "<group>"; };
 		FF1B2C3D4E5F607182930072 /* CalendarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarView.swift; sourceTree = "<group>"; };
 		FF1B2C3D4E5F607182930074 /* FriendCalendarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FriendCalendarView.swift; sourceTree = "<group>"; };
@@ -226,6 +228,7 @@
 				7098BD5FD218346C339BE07E /* StatusDashboardView.swift */,
 				EE1B2C3D4E5F607182930063 /* CreateInviteView.swift */,
 				EE1B2C3D4E5F607182930065 /* InviteDetailView.swift */,
+				EE1B2C3D4E5F607182930067 /* InviteFriendPickerView.swift */,
 			);
 			path = Status;
 			sourceTree = "<group>";
@@ -455,6 +458,7 @@
 				EE1B2C3D4E5F607182930060 /* OpenInvite.swift in Sources */,
 				EE1B2C3D4E5F607182930062 /* CreateInviteView.swift in Sources */,
 				EE1B2C3D4E5F607182930064 /* InviteDetailView.swift in Sources */,
+				EE1B2C3D4E5F607182930066 /* InviteFriendPickerView.swift in Sources */,
 				FF1B2C3D4E5F607182930071 /* CalendarEntry.swift in Sources */,
 				FF1B2C3D4E5F607182930073 /* CalendarView.swift in Sources */,
 				FF1B2C3D4E5F607182930075 /* FriendCalendarView.swift in Sources */,

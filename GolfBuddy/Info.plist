@@ -49,7 +49,15 @@
         <dict>
             <key>CFBundleURLSchemes</key>
             <array>
-                <string>$(REVERSED_CLIENT_ID)</string>
+                <string>com.googleusercontent.apps.499626050396-1tip9sspdptscvout0teitub8teih3sc</string>
+            </array>
+        </dict>
+        <dict>
+            <key>CFBundleURLName</key>
+            <string>com.golfbuddy.app</string>
+            <key>CFBundleURLSchemes</key>
+            <array>
+                <string>golfbuddy</string>
             </array>
         </dict>
     </array>

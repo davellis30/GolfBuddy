@@ -16,7 +16,7 @@ class FirebaseAuthService {
 
     // MARK: - Email/Password Auth
 
-    func signUp(email: String, password: String, username: String, displayName: String) async throws -> User {
+    func signUp(email: String, password: String, username: String, displayName: String, phoneNumber: String? = nil) async throws -> User {
         let result = try await Auth.auth().createUser(withEmail: email, password: password)
         let uid = result.user.uid
 
@@ -25,6 +25,7 @@ class FirebaseAuthService {
             username: username,
             displayName: displayName,
             email: email,
+            phoneNumber: phoneNumber,
             handicap: nil,
             homeCourse: nil
         )
@@ -80,6 +81,7 @@ class FirebaseAuthService {
 
     // MARK: - Google Sign In
 
+    @MainActor
     func signInWithGoogle(presenting viewController: UIViewController) async throws -> User {
         guard let clientID = FirebaseApp.app()?.options.clientID else {
             throw NSError(domain: "FirebaseAuthService", code: -1, userInfo: [NSLocalizedDescriptionKey: "Missing Firebase client ID"])
@@ -167,6 +169,7 @@ class FirebaseAuthService {
             username: data["username"] as? String ?? "",
             displayName: data["displayName"] as? String ?? "",
             email: data["email"] as? String ?? "",
+            phoneNumber: data["phoneNumber"] as? String,
             handicap: data["handicap"] as? Double,
             homeCourse: data["homeCourse"] as? String,
             profilePhotoUrl: data["profilePhotoUrl"] as? String,
@@ -176,7 +179,7 @@ class FirebaseAuthService {
         )
     }
 
-    func updateUserProfile(firebaseUserId: String, handicap: Double?, homeCourse: String?, cardColorTheme: String?, statusTagline: String?, taglineExpiresAt: Date? = nil) async throws {
+    func updateUserProfile(firebaseUserId: String, handicap: Double?, homeCourse: String?, cardColorTheme: String?, statusTagline: String?, taglineExpiresAt: Date? = nil, phoneNumber: String? = nil) async throws {
         var fields: [String: Any] = [:]
         if let handicap = handicap {
             fields["handicap"] = handicap
@@ -201,6 +204,13 @@ class FirebaseAuthService {
         } else {
             fields["statusTagline"] = FieldValue.delete()
             fields["taglineExpiresAt"] = FieldValue.delete()
+        }
+        if let phoneNumber = phoneNumber, !phoneNumber.isEmpty {
+            fields["phoneNumber"] = phoneNumber
+            fields["phoneNumberNormalized"] = User.normalizePhoneNumber(phoneNumber)
+        } else {
+            fields["phoneNumber"] = FieldValue.delete()
+            fields["phoneNumberNormalized"] = FieldValue.delete()
         }
 
         try await db.collection(usersCollection).document(firebaseUserId).updateData(fields)
@@ -250,6 +260,10 @@ class FirebaseAuthService {
         }
         if let profilePhotoUrl = user.profilePhotoUrl {
             data["profilePhotoUrl"] = profilePhotoUrl
+        }
+        if let phoneNumber = user.phoneNumber, !phoneNumber.isEmpty {
+            data["phoneNumber"] = phoneNumber
+            data["phoneNumberNormalized"] = User.normalizePhoneNumber(phoneNumber)
         }
 
         try await db.collection(usersCollection).document(user.id).setData(data)

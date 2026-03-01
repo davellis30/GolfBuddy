@@ -14,6 +14,9 @@ struct GolfBuddyApp: App {
                 .environmentObject(dataService)
                 .environmentObject(notificationService)
                 .environmentObject(locationService)
+                .onOpenURL { url in
+                    dataService.handleDeepLink(url: url)
+                }
         }
     }
 }

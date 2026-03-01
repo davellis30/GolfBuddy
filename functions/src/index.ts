@@ -15,10 +15,11 @@ interface UserDoc {
     friendRequests?: boolean;
     messages?: boolean;
     statusChanges?: boolean;
+    invites?: boolean;
   };
 }
 
-type NotificationType = "friendRequest" | "message" | "statusChange";
+type NotificationType = "friendRequest" | "message" | "statusChange" | "invite";
 
 async function sendPushNotification(
   recipientUserId: string,
@@ -44,6 +45,7 @@ async function sendPushNotification(
     if (notificationType === "statusChange" && prefs.statusChanges === false) {
       return;
     }
+    if (notificationType === "invite" && prefs.invites === false) return;
   }
 
   try {
@@ -243,6 +245,64 @@ export const onWeekendStatusWritten = onDocumentWritten(
           statusUserId: userId,
         },
         "statusChange"
+      )
+    );
+
+    await Promise.all(notifications);
+  }
+);
+
+// --- Trigger: Direct Invite Sent ---
+
+export const onOpenInviteUpdated = onDocumentUpdated(
+  "openInvites/{inviteId}",
+  async (event) => {
+    const before = event.data?.before.data();
+    const after = event.data?.after.data();
+    if (!before || !after) return;
+
+    const beforeRequests = (before.joinRequests || []) as Array<{
+      id: string;
+      userId: string;
+      isDirectInvite?: boolean;
+    }>;
+    const afterRequests = (after.joinRequests || []) as Array<{
+      id: string;
+      userId: string;
+      isDirectInvite?: boolean;
+    }>;
+
+    // Find newly added direct invites
+    const beforeIds = new Set(beforeRequests.map((r) => r.id));
+    const newDirectInvites = afterRequests.filter(
+      (r) => !beforeIds.has(r.id) && r.isDirectInvite === true
+    );
+
+    if (newDirectInvites.length === 0) return;
+
+    const creatorId = after.creatorId as string;
+    const courseName = after.courseName as string;
+    const timeSlot = after.timeSlot as { day: string; time: string };
+    const timeLabel = `${timeSlot.day === "saturday" ? "Sat" : "Sun"} ${
+      timeSlot.time === "am" ? "AM" : "PM"
+    }`;
+
+    // Look up creator's display name
+    const creatorDoc = await db.collection("users").doc(creatorId).get();
+    const creatorName = creatorDoc.exists
+      ? (creatorDoc.data() as UserDoc).displayName || "Someone"
+      : "Someone";
+
+    const notifications = newDirectInvites.map((invite) =>
+      sendPushNotification(
+        invite.userId,
+        "You're Invited to Play!",
+        `${creatorName} invited you to play at ${courseName} - ${timeLabel}`,
+        {
+          type: "directInvite",
+          inviteId: event.params.inviteId,
+        },
+        "invite"
       )
     );
 

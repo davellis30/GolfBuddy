@@ -5,6 +5,7 @@ struct MainTabView: View {
     @EnvironmentObject var notificationService: NotificationService
     @Environment(\.scenePhase) private var scenePhase
     @State private var selectedTab = 0
+    @State private var deepLinkInviteId: String?
 
     private var weekendBadge: Int {
         guard let userId = dataService.currentUser?.id else { return 0 }
@@ -26,7 +27,7 @@ struct MainTabView: View {
             }
 
             TabView(selection: $selectedTab) {
-                StatusDashboardView()
+                StatusDashboardView(deepLinkInviteId: $deepLinkInviteId)
                     .tabItem {
                         Image(systemName: "calendar")
                         Text("Weekend")
@@ -75,6 +76,12 @@ struct MainTabView: View {
             if newPhase == .active && dataService.showVerificationBanner {
                 dataService.checkEmailVerification()
             }
+        }
+        .onChange(of: dataService.pendingDeepLinkInviteId) { _, inviteId in
+            guard let inviteId = inviteId else { return }
+            selectedTab = 0
+            deepLinkInviteId = inviteId
+            dataService.pendingDeepLinkInviteId = nil
         }
     }
 }

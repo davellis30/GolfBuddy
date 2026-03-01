@@ -24,9 +24,11 @@ enum DayTime: String, Codable, CaseIterable {
     }
 }
 
-struct DayTimeSlot: Codable, Hashable {
+struct DayTimeSlot: Codable, Hashable, Identifiable {
     let day: WeekendDay
     let time: DayTime
+
+    var id: String { "\(day.rawValue)-\(time.rawValue)" }
 
     var label: String {
         "\(day.shortLabel) \(time.shortLabel)"

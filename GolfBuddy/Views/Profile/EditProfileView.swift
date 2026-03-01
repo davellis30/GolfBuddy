@@ -13,6 +13,7 @@ struct EditProfileView: View {
     @State private var photoRemoved = false
     @State private var selectedTheme: CardColorTheme = .classicGreen
     @State private var taglineText: String = ""
+    @State private var phoneText: String = ""
 
     var body: some View {
         NavigationStack {
@@ -82,6 +83,32 @@ struct EditProfileView: View {
                                     .fill(AppTheme.inputBackground)
                                     .shadow(color: AppTheme.subtleShadow, radius: 4, x: 0, y: 2)
                             )
+                        }
+
+                        // Phone Number
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Phone Number")
+                                .font(AppTheme.captionFont)
+                                .foregroundColor(AppTheme.mutedText)
+
+                            HStack(spacing: 12) {
+                                Image(systemName: "phone.fill")
+                                    .foregroundColor(AppTheme.accentGreen)
+                                    .frame(width: 20)
+                                TextField("e.g. (312) 555-1234", text: $phoneText)
+                                    .font(AppTheme.bodyFont)
+                                    .keyboardType(.phonePad)
+                            }
+                            .padding(14)
+                            .background(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .fill(AppTheme.inputBackground)
+                                    .shadow(color: AppTheme.subtleShadow, radius: 4, x: 0, y: 2)
+                            )
+
+                            Text("Helps friends find you via Contacts")
+                                .font(.system(size: 11, design: .rounded))
+                                .foregroundColor(AppTheme.mutedText)
                         }
 
                         // Home Course Picker
@@ -215,6 +242,7 @@ struct EditProfileView: View {
                 selectedCourse = dataService.currentUser?.homeCourse ?? ""
                 selectedTheme = dataService.currentUser?.themeColor ?? .classicGreen
                 taglineText = dataService.currentUser?.activeTagline ?? ""
+                phoneText = dataService.currentUser?.phoneNumber ?? ""
             }
             .onChange(of: selectedPhotoItem) { _, newItem in
                 Task {
@@ -241,11 +269,13 @@ struct EditProfileView: View {
 
             // Update profile fields
             let handicap = Double(handicapText)
+            let trimmedPhone = phoneText.trimmingCharacters(in: .whitespaces)
             try? await dataService.updateProfile(
                 handicap: handicap,
                 homeCourse: selectedCourse.isEmpty ? nil : selectedCourse,
                 cardColorTheme: selectedTheme.rawValue,
-                statusTagline: taglineText.trimmingCharacters(in: .whitespaces)
+                statusTagline: taglineText.trimmingCharacters(in: .whitespaces),
+                phoneNumber: trimmedPhone.isEmpty ? nil : trimmedPhone
             )
 
             await MainActor.run {

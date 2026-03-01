@@ -2,14 +2,17 @@ import SwiftUI
 
 struct StatusDashboardView: View {
     @EnvironmentObject var dataService: DataService
+    @Binding var deepLinkInviteId: String?
     @State private var showSetStatus = false
     @State private var showCreateInvite = false
+    @State private var matchInviteTimeSlot: DayTimeSlot?
     @State private var isEditingTagline = false
     @State private var taglineText = ""
     @FocusState private var taglineFocused: Bool
+    @State private var navigationPath = NavigationPath()
 
     var body: some View {
-        NavigationStack {
+        NavigationStack(path: $navigationPath) {
             ZStack {
                 AppTheme.cream.ignoresSafeArea()
 
@@ -29,6 +32,28 @@ struct StatusDashboardView: View {
                         // My status card
                         myStatusCard
                             .padding(.horizontal, 20)
+
+                        // Mutual availability matches
+                        let matches = dataService.mutualAvailabilityMatches()
+                        if !matches.isEmpty {
+                            VStack(spacing: 10) {
+                                HStack(spacing: 6) {
+                                    Image(systemName: "sparkles")
+                                        .font(.system(size: 12, weight: .bold))
+                                        .foregroundColor(AppTheme.gold)
+                                    Text("MATCHES")
+                                        .font(.system(size: 12, weight: .bold, design: .rounded))
+                                        .foregroundColor(AppTheme.mutedText)
+                                        .tracking(1)
+                                    Spacer()
+                                }
+
+                                ForEach(matches) { match in
+                                    availabilityMatchCard(match)
+                                }
+                            }
+                            .padding(.horizontal, 20)
+                        }
 
                         // Open Invites section
                         VStack(spacing: 10) {
@@ -57,7 +82,7 @@ struct StatusDashboardView: View {
                             } else {
                                 LazyVStack(spacing: 10) {
                                     ForEach(Array(invites.enumerated()), id: \.element.id) { index, invite in
-                                        NavigationLink(destination: InviteDetailView(inviteId: invite.id)) {
+                                        NavigationLink(value: invite.id) {
                                             OpenInviteCard(invite: invite)
                                         }
                                         .buttonStyle(.plain)
@@ -117,6 +142,20 @@ struct StatusDashboardView: View {
             }
             .sheet(isPresented: $showCreateInvite) {
                 CreateInviteView()
+            }
+            .sheet(item: $matchInviteTimeSlot) { slot in
+                CreateInviteView(prefillTimeSlot: slot)
+            }
+            .navigationDestination(for: String.self) { inviteId in
+                InviteDetailView(inviteId: inviteId)
+            }
+            .onChange(of: deepLinkInviteId) { _, inviteId in
+                guard let inviteId = inviteId else { return }
+                // Small delay to ensure NavigationStack is ready
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                    navigationPath.append(inviteId)
+                    deepLinkInviteId = nil
+                }
             }
         }
     }
@@ -348,6 +387,72 @@ struct StatusDashboardView: View {
         Task {
             try? await dataService.updateTagline(trimmed)
         }
+    }
+
+    @ViewBuilder
+    private func availabilityMatchCard(_ match: DataService.AvailabilityMatch) -> some View {
+        let friendNames = match.friends.prefix(3).map { $0.0.displayName.components(separatedBy: " ").first ?? $0.0.displayName }
+        let nameList = friendNames.joined(separator: ", ")
+        let overflow = match.friends.count > 3 ? match.friends.count - 3 : 0
+
+        VStack(spacing: 12) {
+            HStack(spacing: 10) {
+                // Time slot badge
+                Text(match.timeSlot.label)
+                    .font(.system(size: 13, weight: .bold, design: .rounded))
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .background(Capsule().fill(AppTheme.accentGreen))
+
+                Spacer()
+
+                // Friend avatars
+                HStack(spacing: -8) {
+                    ForEach(Array(match.friends.prefix(4).enumerated()), id: \.element.0.id) { index, pair in
+                        AvatarView(userId: pair.0.id, size: 30)
+                            .overlay(Circle().stroke(AppTheme.cardBackground, lineWidth: 2))
+                            .zIndex(Double(4 - index))
+                    }
+                    if overflow > 0 {
+                        Text("+\(overflow)")
+                            .font(.system(size: 11, weight: .bold, design: .rounded))
+                            .foregroundColor(AppTheme.mutedText)
+                            .frame(width: 30, height: 30)
+                            .background(Circle().fill(AppTheme.cream))
+                            .overlay(Circle().stroke(AppTheme.cardBackground, lineWidth: 2))
+                    }
+                }
+            }
+
+            HStack {
+                Text("You + \(nameList)\(overflow > 0 ? " +\(overflow)" : "") are all free")
+                    .font(.system(size: 14, weight: .medium, design: .rounded))
+                    .foregroundColor(AppTheme.darkText)
+                    .lineLimit(2)
+                Spacer()
+            }
+
+            Button {
+                matchInviteTimeSlot = match.timeSlot
+            } label: {
+                HStack(spacing: 6) {
+                    Image(systemName: "plus.circle.fill")
+                        .font(.system(size: 14))
+                    Text("Create Invite")
+                        .font(.system(size: 14, weight: .semibold, design: .rounded))
+                }
+                .foregroundColor(.white)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 10)
+                .background(Capsule().fill(AppTheme.accentGreen))
+            }
+        }
+        .cardStyle()
+        .overlay(
+            RoundedRectangle(cornerRadius: 16)
+                .stroke(AppTheme.gold.opacity(0.3), lineWidth: 1.5)
+        )
     }
 }
 

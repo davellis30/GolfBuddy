@@ -14,26 +14,37 @@ struct JoinRequest: Identifiable, Codable {
     let userId: String
     var status: JoinRequestStatus
     let requestedAt: Date
+    var isDirectInvite: Bool
+    var declineNote: String?
 
     init(
         id: String = UUID().uuidString,
         userId: String,
         status: JoinRequestStatus = .pending,
-        requestedAt: Date = Date()
+        requestedAt: Date = Date(),
+        isDirectInvite: Bool = false,
+        declineNote: String? = nil
     ) {
         self.id = id
         self.userId = userId
         self.status = status
         self.requestedAt = requestedAt
+        self.isDirectInvite = isDirectInvite
+        self.declineNote = declineNote
     }
 
     func toFirestoreMap() -> [String: Any] {
-        [
+        var map: [String: Any] = [
             "id": id,
             "userId": userId,
             "status": status.rawValue,
-            "requestedAt": Timestamp(date: requestedAt)
+            "requestedAt": Timestamp(date: requestedAt),
+            "isDirectInvite": isDirectInvite
         ]
+        if let declineNote = declineNote {
+            map["declineNote"] = declineNote
+        }
+        return map
     }
 
     init?(fromFirestore data: [String: Any]) {
@@ -45,6 +56,8 @@ struct JoinRequest: Identifiable, Codable {
         self.userId = userId
         self.status = status
         self.requestedAt = (data["requestedAt"] as? Timestamp)?.dateValue() ?? Date()
+        self.isDirectInvite = data["isDirectInvite"] as? Bool ?? false
+        self.declineNote = data["declineNote"] as? String
     }
 }
 

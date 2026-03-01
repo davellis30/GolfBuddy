@@ -127,6 +127,22 @@ struct NotificationSettingsView: View {
                     }
                 )
             )
+
+            Divider().padding(.vertical, 8)
+
+            notificationToggle(
+                icon: "paperplane.fill",
+                title: "Invites",
+                subtitle: "When someone invites you to play",
+                isOn: Binding(
+                    get: { dataService.notificationPreferences.invites },
+                    set: { newValue in
+                        var prefs = dataService.notificationPreferences
+                        prefs.invites = newValue
+                        dataService.updateNotificationPreferences(prefs)
+                    }
+                )
+            )
         }
         .cardStyle()
     }

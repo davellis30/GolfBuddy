@@ -32,47 +32,55 @@ private struct GoogleLogo: View {
         Canvas { context, size in
             let w = size.width
             let h = size.height
+            let center = CGPoint(x: w * 0.5, y: h * 0.5)
+            let outerR = w * 0.48
+            let innerR = w * 0.28
+            let strokeW = outerR - innerR
 
-            // Blue (right arc)
-            var blue = Path()
-            blue.addArc(center: CGPoint(x: w * 0.5, y: h * 0.5), radius: w * 0.45,
-                        startAngle: .degrees(-45), endAngle: .degrees(10), clockwise: false)
-            blue.addLine(to: CGPoint(x: w * 0.5, y: h * 0.5))
-            blue.closeSubpath()
-            context.fill(blue, with: .color(Color(red: 0.26, green: 0.52, blue: 0.96)))
-
-            // Green (bottom arc)
-            var green = Path()
-            green.addArc(center: CGPoint(x: w * 0.5, y: h * 0.5), radius: w * 0.45,
-                         startAngle: .degrees(10), endAngle: .degrees(120), clockwise: false)
-            green.addLine(to: CGPoint(x: w * 0.5, y: h * 0.5))
-            green.closeSubpath()
-            context.fill(green, with: .color(Color(red: 0.20, green: 0.66, blue: 0.33)))
-
-            // Yellow (left-bottom arc)
-            var yellow = Path()
-            yellow.addArc(center: CGPoint(x: w * 0.5, y: h * 0.5), radius: w * 0.45,
-                          startAngle: .degrees(120), endAngle: .degrees(215), clockwise: false)
-            yellow.addLine(to: CGPoint(x: w * 0.5, y: h * 0.5))
-            yellow.closeSubpath()
-            context.fill(yellow, with: .color(Color(red: 0.98, green: 0.74, blue: 0.02)))
-
-            // Red (top-left arc)
+            // Red (top-left quadrant, from 7 o'clock to 12 o'clock)
             var red = Path()
-            red.addArc(center: CGPoint(x: w * 0.5, y: h * 0.5), radius: w * 0.45,
-                       startAngle: .degrees(215), endAngle: .degrees(315), clockwise: false)
-            red.addLine(to: CGPoint(x: w * 0.5, y: h * 0.5))
-            red.closeSubpath()
-            context.fill(red, with: .color(Color(red: 0.92, green: 0.26, blue: 0.21)))
+            red.addArc(center: center, radius: outerR - strokeW / 2,
+                       startAngle: .degrees(150), endAngle: .degrees(270), clockwise: false)
+            context.stroke(red, with: .color(Color(red: 0.92, green: 0.26, blue: 0.21)),
+                          lineWidth: strokeW)
 
-            // White center
-            let inset = w * 0.22
-            let innerRect = CGRect(x: inset, y: inset, width: w - inset * 2, height: h - inset * 2)
-            context.fill(Path(ellipseIn: innerRect), with: .color(.white))
+            // Yellow (bottom-left, from 5 o'clock to 7 o'clock)
+            var yellow = Path()
+            yellow.addArc(center: center, radius: outerR - strokeW / 2,
+                          startAngle: .degrees(90), endAngle: .degrees(150), clockwise: false)
+            context.stroke(yellow, with: .color(Color(red: 0.98, green: 0.74, blue: 0.02)),
+                          lineWidth: strokeW)
 
-            // Blue horizontal bar (the "G" crossbar)
-            let barRect = CGRect(x: w * 0.5, y: h * 0.38, width: w * 0.42, height: h * 0.24)
+            // Green (bottom-right, from 3 o'clock to 5 o'clock)
+            var green = Path()
+            green.addArc(center: center, radius: outerR - strokeW / 2,
+                         startAngle: .degrees(30), endAngle: .degrees(90), clockwise: false)
+            context.stroke(green, with: .color(Color(red: 0.20, green: 0.66, blue: 0.33)),
+                          lineWidth: strokeW)
+
+            // Blue (right side, from 12 o'clock to 3 o'clock)
+            var blue = Path()
+            blue.addArc(center: center, radius: outerR - strokeW / 2,
+                        startAngle: .degrees(-30), endAngle: .degrees(30), clockwise: false)
+            context.stroke(blue, with: .color(Color(red: 0.26, green: 0.52, blue: 0.96)),
+                          lineWidth: strokeW)
+
+            // Blue crossbar extending right from center
+            let barY = center.y - strokeW / 2
+            let barRect = CGRect(x: center.x - strokeW * 0.1, y: barY,
+                                 width: outerR + strokeW * 0.1, height: strokeW)
             context.fill(Path(barRect), with: .color(Color(red: 0.26, green: 0.52, blue: 0.96)))
+
+            // Clean up the top-right to make the "G" opening
+            var topClear = Path()
+            topClear.move(to: CGPoint(x: center.x, y: 0))
+            topClear.addLine(to: CGPoint(x: w, y: 0))
+            topClear.addLine(to: CGPoint(x: w, y: barY))
+            topClear.addLine(to: CGPoint(x: center.x + innerR, y: barY))
+            topClear.addArc(center: center, radius: innerR,
+                           startAngle: .degrees(-30), endAngle: .degrees(-90), clockwise: true)
+            topClear.closeSubpath()
+            context.fill(topClear, with: .color(.white))
         }
     }
 }

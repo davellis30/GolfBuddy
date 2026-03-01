@@ -4,6 +4,10 @@ struct InviteDetailView: View {
     @EnvironmentObject var dataService: DataService
     let inviteId: String
     @State private var appearedSections: Set<Int> = []
+    @State private var showInvitePicker = false
+    @State private var showDeclineNote = false
+    @State private var declineNoteText = ""
+    @State private var showShareSheet = false
 
     private var invite: OpenInvite? {
         dataService.openInvites.first { $0.id == inviteId }
@@ -11,6 +15,19 @@ struct InviteDetailView: View {
 
     private var isCreator: Bool {
         dataService.currentUser?.id == invite?.creatorId
+    }
+
+    private var canShare: Bool {
+        guard let invite = invite, let currentId = dataService.currentUser?.id else { return false }
+        return invite.creatorId == currentId || invite.approvedPlayerIds.contains(currentId)
+    }
+
+    private var shareText: String {
+        guard let invite = invite else { return "" }
+        let creatorName = dataService.userName(for: invite.creatorId)
+        let spots = invite.spotsRemaining
+        let spotsText = spots == 1 ? "1 spot left" : "\(spots) spots left"
+        return "Join \(isCreator ? "me" : creatorName) for golf at \(invite.courseName) this \(invite.timeSlot.label)! \(spotsText). Open in GolfBuddy: golfbuddy://invite/\(invite.id)"
     }
 
     private func sectionAppear(_ section: Int) -> some View {
@@ -94,6 +111,19 @@ struct InviteDetailView: View {
                                 if index < invite.approvedPlayerIds.count {
                                     AvatarView(userId: invite.approvedPlayerIds[index], size: 44)
                                         .transition(.scale.combined(with: .opacity))
+                                } else if isCreator && invite.status == .open {
+                                    Button {
+                                        showInvitePicker = true
+                                    } label: {
+                                        Circle()
+                                            .strokeBorder(AppTheme.accentGreen.opacity(0.4), lineWidth: 2)
+                                            .frame(width: 44, height: 44)
+                                            .overlay(
+                                                Image(systemName: "plus")
+                                                    .font(.system(size: 16, weight: .medium))
+                                                    .foregroundColor(AppTheme.accentGreen)
+                                            )
+                                    }
                                 } else {
                                     Circle()
                                         .strokeBorder(AppTheme.mutedText.opacity(0.3), lineWidth: 2)
@@ -126,9 +156,9 @@ struct InviteDetailView: View {
                     .offset(y: appearedSections.contains(2) ? 0 : 15)
                     .background(sectionAppear(2))
 
-                    // Creator view: pending requests
+                    // Creator view: pending requests + sent invites
                     if isCreator {
-                        let pendingRequests = invite.joinRequests.filter { $0.status == .pending }
+                        let pendingRequests = invite.joinRequests.filter { $0.status == .pending && !$0.isDirectInvite }
                         if !pendingRequests.isEmpty {
                             VStack(alignment: .leading, spacing: 10) {
                                 Text("JOIN REQUESTS")
@@ -185,6 +215,65 @@ struct InviteDetailView: View {
                             .background(sectionAppear(3))
                         }
 
+                        // Sent direct invites
+                        let directInvites = invite.joinRequests.filter { $0.isDirectInvite }
+                        if !directInvites.isEmpty {
+                            VStack(alignment: .leading, spacing: 10) {
+                                Text("SENT INVITES")
+                                    .font(.system(size: 12, weight: .bold, design: .rounded))
+                                    .foregroundColor(AppTheme.mutedText)
+                                    .tracking(1)
+
+                                ForEach(directInvites) { di in
+                                    HStack(spacing: 14) {
+                                        AvatarView(userId: di.userId, size: 44)
+
+                                        VStack(alignment: .leading, spacing: 2) {
+                                            Text(dataService.userName(for: di.userId))
+                                                .font(AppTheme.bodyFont.weight(.semibold))
+                                                .foregroundColor(AppTheme.darkText)
+
+                                            if di.status == .pending {
+                                                HStack(spacing: 4) {
+                                                    Image(systemName: "clock.fill")
+                                                        .font(.system(size: 11))
+                                                    Text("Invite Sent")
+                                                        .font(AppTheme.captionFont)
+                                                }
+                                                .foregroundColor(AppTheme.gold)
+                                            } else if di.status == .approved {
+                                                HStack(spacing: 4) {
+                                                    Image(systemName: "checkmark.circle.fill")
+                                                        .font(.system(size: 11))
+                                                    Text("Accepted")
+                                                        .font(AppTheme.captionFont)
+                                                }
+                                                .foregroundColor(AppTheme.accentGreen)
+                                            } else if di.status == .declined {
+                                                VStack(alignment: .leading, spacing: 2) {
+                                                    Text("Declined")
+                                                        .font(AppTheme.captionFont)
+                                                        .foregroundColor(AppTheme.mutedText)
+                                                    if let note = di.declineNote, !note.isEmpty {
+                                                        Text("\"\(note)\"")
+                                                            .font(.system(size: 11, weight: .regular, design: .rounded))
+                                                            .foregroundColor(AppTheme.mutedText)
+                                                            .italic()
+                                                    }
+                                                }
+                                            }
+                                        }
+
+                                        Spacer()
+                                    }
+                                    .cardStyle()
+                                }
+                            }
+                            .opacity(appearedSections.contains(4) ? 1 : 0)
+                            .offset(y: appearedSections.contains(4) ? 0 : 15)
+                            .background(sectionAppear(4))
+                        }
+
                         // Cancel invite button
                         if invite.status != .cancelled {
                             Button("Cancel Invite") {
@@ -222,6 +311,27 @@ struct InviteDetailView: View {
         }
         .navigationTitle("Invite Details")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            if canShare {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button {
+                        showShareSheet = true
+                    } label: {
+                        Image(systemName: "square.and.arrow.up")
+                            .font(.system(size: 16))
+                            .foregroundColor(AppTheme.accentGreen)
+                    }
+                }
+            }
+        }
+        .sheet(isPresented: $showShareSheet) {
+            ShareSheet(text: shareText)
+        }
+        .sheet(isPresented: $showInvitePicker) {
+            if let invite = invite {
+                InviteFriendPickerView(invite: invite)
+            }
+        }
     }
 
     @ViewBuilder
@@ -245,7 +355,94 @@ struct InviteDetailView: View {
                     .fill(AppTheme.accentGreen.opacity(0.12))
             )
         } else if let myRequest = myRequest {
-            if myRequest.status == .pending {
+            if myRequest.isDirectInvite && myRequest.status == .pending {
+                // Direct invite from the creator — show accept/decline
+                VStack(spacing: 12) {
+                    HStack(spacing: 6) {
+                        Image(systemName: "envelope.open.fill")
+                            .foregroundColor(AppTheme.accentGreen)
+                        Text("\(dataService.userName(for: invite.creatorId)) invited you to play!")
+                            .font(AppTheme.bodyFont.weight(.semibold))
+                            .foregroundColor(AppTheme.darkText)
+                    }
+
+                    if showDeclineNote {
+                        VStack(spacing: 8) {
+                            TextField("Add a note (optional)", text: $declineNoteText)
+                                .font(AppTheme.bodyFont)
+                                .padding(12)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 8)
+                                        .fill(AppTheme.inputBackground)
+                                )
+                                .onChange(of: declineNoteText) { _, newValue in
+                                    if newValue.count > 100 {
+                                        declineNoteText = String(newValue.prefix(100))
+                                    }
+                                }
+
+                            HStack(spacing: 10) {
+                                Button("Cancel") {
+                                    withAnimation { showDeclineNote = false }
+                                    declineNoteText = ""
+                                }
+                                .font(AppTheme.captionFont.weight(.semibold))
+                                .foregroundColor(AppTheme.mutedText)
+
+                                Spacer()
+
+                                Button("Confirm Decline") {
+                                    withAnimation(.spring(response: 0.35, dampingFraction: 0.7)) {
+                                        let note = declineNoteText.trimmingCharacters(in: .whitespaces)
+                                        dataService.declineDirectInvite(
+                                            invite: invite,
+                                            request: myRequest,
+                                            note: note.isEmpty ? nil : note
+                                        )
+                                        showDeclineNote = false
+                                        declineNoteText = ""
+                                    }
+                                }
+                                .font(AppTheme.captionFont.weight(.semibold))
+                                .foregroundColor(AppTheme.statusSeeking)
+                            }
+                        }
+                    } else {
+                        HStack(spacing: 12) {
+                            Button {
+                                withAnimation(.spring(response: 0.35, dampingFraction: 0.7)) {
+                                    dataService.acceptDirectInvite(invite: invite, request: myRequest)
+                                }
+                            } label: {
+                                Text("Accept")
+                                    .font(AppTheme.bodyFont.weight(.semibold))
+                                    .foregroundColor(.white)
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 12)
+                                    .background(
+                                        RoundedRectangle(cornerRadius: 10)
+                                            .fill(AppTheme.accentGreen)
+                                    )
+                            }
+
+                            Button {
+                                withAnimation { showDeclineNote = true }
+                            } label: {
+                                Text("Decline")
+                                    .font(AppTheme.bodyFont.weight(.semibold))
+                                    .foregroundColor(AppTheme.mutedText)
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 12)
+                                    .background(
+                                        RoundedRectangle(cornerRadius: 10)
+                                            .stroke(AppTheme.mutedText.opacity(0.3), lineWidth: 1.5)
+                                    )
+                            }
+                        }
+                    }
+                }
+                .cardStyle()
+            } else if myRequest.status == .pending {
                 HStack {
                     Image(systemName: "clock.fill")
                         .foregroundColor(AppTheme.gold)
@@ -263,7 +460,7 @@ struct InviteDetailView: View {
                 HStack {
                     Image(systemName: "xmark.circle")
                         .foregroundColor(AppTheme.mutedText)
-                    Text("Request Declined")
+                    Text(myRequest.isDirectInvite ? "Invite Declined" : "Request Declined")
                         .font(AppTheme.bodyFont.weight(.semibold))
                         .foregroundColor(AppTheme.mutedText)
                 }

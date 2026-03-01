@@ -309,11 +309,66 @@ struct FindContactsView: View {
             }
 
             let currentStatus = contactsService.accessStatus
-            let result = contactsService.matchContacts(against: dataService.allUsers)
+            let contacts = contactsService.fetchContacts()
+
+            // Collect emails and normalized phone numbers from contacts
+            let emails = Array(Set(
+                contacts.flatMap { $0.emailAddresses.map { ($0.value as String).lowercased() } }
+            ))
+            let phones = Array(Set(
+                contacts.flatMap { $0.phoneNumbers.map { User.normalizePhoneNumber($0.value.stringValue) } }
+            )).filter { !$0.isEmpty }
+
+            // Query Firestore for matching users by email and phone
+            var matchedByIdMap: [String: User] = [:]
+
+            if !emails.isEmpty {
+                let emailUsers = (try? await FirestoreService.shared.fetchUsersByEmails(emails)) ?? []
+                for user in emailUsers { matchedByIdMap[user.id] = user }
+            }
+            if !phones.isEmpty {
+                let phoneUsers = (try? await FirestoreService.shared.fetchUsersByPhoneNumbers(phones)) ?? []
+                for user in phoneUsers { matchedByIdMap[user.id] = user }
+            }
+
+            // Filter out current user and existing friends
+            let currentId = dataService.currentUser?.id ?? ""
+            let friendIds = dataService.friendships[currentId] ?? []
+            let matched = matchedByIdMap.values.filter { $0.id != currentId && !friendIds.contains($0.id) }
+
+            // Build unmatched contacts list
+            let matchedEmails = Set(matched.map { $0.email.lowercased() })
+            let matchedPhones = Set(matched.compactMap { user -> String? in
+                guard let phone = user.phoneNumber, !phone.isEmpty else { return nil }
+                return User.normalizePhoneNumber(phone)
+            })
+
+            var unmatched: [ContactsService.UnmatchedContact] = []
+            for contact in contacts {
+                let fullName = [contact.givenName, contact.familyName]
+                    .filter { !$0.isEmpty }
+                    .joined(separator: " ")
+                guard !fullName.isEmpty else { continue }
+
+                let contactEmails = contact.emailAddresses.map { ($0.value as String).lowercased() }
+                let contactPhones = contact.phoneNumbers.map { User.normalizePhoneNumber($0.value.stringValue) }
+
+                let emailMatch = contactEmails.contains { matchedEmails.contains($0) }
+                let phoneMatch = contactPhones.contains { matchedPhones.contains($0) }
+
+                if !emailMatch && !phoneMatch {
+                    unmatched.append(ContactsService.UnmatchedContact(
+                        name: fullName,
+                        email: contact.emailAddresses.first?.value as String?,
+                        phone: contact.phoneNumbers.first?.value.stringValue
+                    ))
+                }
+            }
+
             await MainActor.run {
                 isLimitedAccess = currentStatus == .limited
-                matchedUsers = result.matched.sorted { $0.displayName.localizedCaseInsensitiveCompare($1.displayName) == .orderedAscending }
-                unmatchedContacts = result.unmatched.sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
+                matchedUsers = matched.sorted { $0.displayName.localizedCaseInsensitiveCompare($1.displayName) == .orderedAscending }
+                unmatchedContacts = unmatched.sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
                 viewState = .results
             }
         }

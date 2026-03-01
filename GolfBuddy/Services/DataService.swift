@@ -25,6 +25,7 @@ class DataService: ObservableObject, @unchecked Sendable {
     @Published var nearbyCourses: [Course] = CourseService.chicagoAreaCourses
     @Published var isEmailVerified: Bool = false
     @Published var showVerificationBanner: Bool = false
+    @Published var pendingDeepLinkInviteId: String?
 
     let allCourses: [Course] = CourseService.allCourses
 
@@ -46,12 +47,13 @@ class DataService: ObservableObject, @unchecked Sendable {
 
     // MARK: - Auth
 
-    func signUp(username: String, displayName: String, email: String, password: String) async throws {
+    func signUp(username: String, displayName: String, email: String, password: String, phoneNumber: String? = nil) async throws {
         let user = try await FirebaseAuthService.shared.signUp(
             email: email,
             password: password,
             username: username,
-            displayName: displayName
+            displayName: displayName,
+            phoneNumber: phoneNumber
         )
         try? await FirebaseAuthService.shared.sendEmailVerification()
         await MainActor.run {
@@ -139,6 +141,37 @@ class DataService: ObservableObject, @unchecked Sendable {
         }
     }
 
+    // MARK: - Deep Links
+
+    func handleDeepLink(url: URL) {
+        guard url.scheme == "golfbuddy",
+              url.host == "invite",
+              let inviteId = url.pathComponents.dropFirst().first,
+              !inviteId.isEmpty else { return }
+        pendingDeepLinkInviteId = inviteId
+        fetchInviteIfNeeded(inviteId: inviteId)
+    }
+
+    func fetchInviteIfNeeded(inviteId: String) {
+        guard !openInvites.contains(where: { $0.id == inviteId }) else { return }
+        Task {
+            do {
+                if let invite = try await firestoreService.fetchOpenInvite(inviteId: inviteId) {
+                    await MainActor.run {
+                        if !self.openInvites.contains(where: { $0.id == invite.id }) {
+                            self.openInvites.append(invite)
+                        }
+                        // Fetch profiles for users in this invite
+                        let userIds = Set([invite.creatorId] + invite.approvedPlayerIds + invite.joinRequests.map { $0.userId })
+                        self.fetchMissingUserProfiles(friendIds: userIds)
+                    }
+                }
+            } catch {
+                print("[DataService] Failed to fetch invite for deep link: \(error)")
+            }
+        }
+    }
+
     // MARK: - Email Verification
 
     func sendEmailVerification() {
@@ -172,12 +205,13 @@ class DataService: ObservableObject, @unchecked Sendable {
         await startListeners()
     }
 
-    func updateProfile(handicap: Double?, homeCourse: String?, cardColorTheme: String? = nil, statusTagline: String? = nil) async throws {
+    func updateProfile(handicap: Double?, homeCourse: String?, cardColorTheme: String? = nil, statusTagline: String? = nil, phoneNumber: String? = nil) async throws {
         guard var user = currentUser else { return }
         user.handicap = handicap
         user.homeCourse = homeCourse
         user.cardColorTheme = cardColorTheme
         user.statusTagline = statusTagline
+        user.phoneNumber = phoneNumber
         if let tagline = statusTagline, !tagline.isEmpty {
             user.taglineExpiresAt = User.taglineExpiry()
         } else {
@@ -193,7 +227,8 @@ class DataService: ObservableObject, @unchecked Sendable {
             homeCourse: homeCourse,
             cardColorTheme: cardColorTheme,
             statusTagline: statusTagline,
-            taglineExpiresAt: user.taglineExpiresAt
+            taglineExpiresAt: user.taglineExpiresAt,
+            phoneNumber: phoneNumber
         )
     }
 
@@ -473,12 +508,24 @@ class DataService: ObservableObject, @unchecked Sendable {
         let emails = Array(Set(
             contacts.flatMap { $0.emailAddresses.map { ($0.value as String).lowercased() } }
         ))
-        guard !emails.isEmpty else { return [] }
+        let phones = Array(Set(
+            contacts.flatMap { $0.phoneNumbers.map { User.normalizePhoneNumber($0.value.stringValue) } }
+        )).filter { !$0.isEmpty }
+
+        guard !emails.isEmpty || !phones.isEmpty else { return [] }
 
         do {
-            let users = try await firestoreService.fetchUsersByEmails(emails)
+            var userMap: [String: User] = [:]
+            if !emails.isEmpty {
+                let emailUsers = try await firestoreService.fetchUsersByEmails(emails)
+                for user in emailUsers { userMap[user.id] = user }
+            }
+            if !phones.isEmpty {
+                let phoneUsers = try await firestoreService.fetchUsersByPhoneNumbers(phones)
+                for user in phoneUsers { userMap[user.id] = user }
+            }
             let friendIds = friendships[currentId] ?? []
-            return users.filter { $0.id != currentId && !friendIds.contains($0.id) }
+            return userMap.values.filter { $0.id != currentId && !friendIds.contains($0.id) }
         } catch {
             print("[DataService] Contact match failed: \(error)")
             return []
@@ -559,28 +606,86 @@ class DataService: ObservableObject, @unchecked Sendable {
         allUsers.first(where: { $0.id == id })?.displayName ?? "Unknown"
     }
 
+    // MARK: - Mutual Availability Matching
+
+    struct AvailabilityMatch: Identifiable {
+        let timeSlot: DayTimeSlot
+        let friends: [(User, WeekendStatus)]
+        var id: String { "\(timeSlot.day.rawValue)-\(timeSlot.time.rawValue)" }
+    }
+
+    func mutualAvailabilityMatches() -> [AvailabilityMatch] {
+        guard let currentId = currentUser?.id,
+              let myStatus = weekendStatuses[currentId],
+              !myStatus.timeSlots.isEmpty else { return [] }
+
+        let availableFriends = visibleFriendStatuses().filter {
+            $0.1.availability == .lookingToPlay || $0.1.availability == .seekingAdditional
+        }
+        guard !availableFriends.isEmpty else { return [] }
+
+        var matches: [AvailabilityMatch] = []
+        for slot in myStatus.timeSlots {
+            let matching = availableFriends.filter { $0.1.timeSlots.contains(slot) }
+            if !matching.isEmpty {
+                matches.append(AvailabilityMatch(timeSlot: slot, friends: matching))
+            }
+        }
+
+        // Sort: preferred time slot first, then by friend count descending
+        matches.sort { a, b in
+            let aPreferred = myStatus.preferredTimeSlot == a.timeSlot
+            let bPreferred = myStatus.preferredTimeSlot == b.timeSlot
+            if aPreferred != bPreferred { return aPreferred }
+            return a.friends.count > b.friends.count
+        }
+
+        return matches
+    }
+
     // MARK: - Open Invites
 
     func createOpenInvite(courseName: String, timeSlot: DayTimeSlot, groupSize: Int) {
         guard let currentId = currentUser?.id else { return }
-        let friendIds = Array(friendships[currentId] ?? [])
-        let visibleTo = [currentId] + friendIds
 
-        let invite = OpenInvite(
+        // Use local cache for optimistic UI, but fetch fresh list for Firestore
+        let localFriendIds = Array(friendships[currentId] ?? [])
+        let localVisibleTo = [currentId] + localFriendIds
+
+        let placeholderInvite = OpenInvite(
             creatorId: currentId,
             courseName: courseName,
             timeSlot: timeSlot,
             groupSize: groupSize,
-            visibleToFriendIds: visibleTo
+            visibleToFriendIds: localVisibleTo
         )
-        openInvites.append(invite)
+        openInvites.append(placeholderInvite)
 
         Task {
             do {
+                // Fetch fresh friend list from Firestore to avoid stale cache
+                let freshFriendIds = try await firestoreService.fetchFriendIds(userId: currentId)
+                let visibleTo = [currentId] + Array(freshFriendIds)
+
+                let invite = OpenInvite(
+                    id: placeholderInvite.id,
+                    creatorId: currentId,
+                    courseName: courseName,
+                    timeSlot: timeSlot,
+                    groupSize: groupSize,
+                    visibleToFriendIds: visibleTo
+                )
                 try await firestoreService.createOpenInvite(invite)
+
+                // Update local copy with fresh visibility list
+                await MainActor.run {
+                    if let idx = self.openInvites.firstIndex(where: { $0.id == invite.id }) {
+                        self.openInvites[idx] = invite
+                    }
+                }
             } catch {
                 await MainActor.run {
-                    self.openInvites.removeAll { $0.id == invite.id }
+                    self.openInvites.removeAll { $0.id == placeholderInvite.id }
                 }
                 print("[DataService] Failed to create open invite: \(error)")
             }
@@ -662,6 +767,76 @@ class DataService: ObservableObject, @unchecked Sendable {
             } catch {
                 print("[DataService] Failed to cancel open invite: \(error)")
             }
+        }
+    }
+
+    func sendDirectInvite(invite: OpenInvite, toUserId: String) {
+        guard let idx = openInvites.firstIndex(where: { $0.id == invite.id }),
+              openInvites[idx].status == .open else { return }
+
+        let request = JoinRequest(userId: toUserId, isDirectInvite: true)
+        openInvites[idx].joinRequests.append(request)
+
+        Task {
+            do {
+                try await firestoreService.sendDirectInvite(inviteId: invite.id, joinRequest: request)
+            } catch {
+                await MainActor.run {
+                    if let idx = self.openInvites.firstIndex(where: { $0.id == invite.id }) {
+                        self.openInvites[idx].joinRequests.removeAll { $0.id == request.id }
+                    }
+                }
+                print("[DataService] Failed to send direct invite: \(error)")
+            }
+        }
+    }
+
+    func acceptDirectInvite(invite: OpenInvite, request: JoinRequest) {
+        guard let idx = openInvites.firstIndex(where: { $0.id == invite.id }),
+              openInvites[idx].status == .open,
+              openInvites[idx].spotsRemaining > 0 else { return }
+
+        if let rIdx = openInvites[idx].joinRequests.firstIndex(where: { $0.id == request.id }) {
+            openInvites[idx].joinRequests[rIdx].status = .approved
+        }
+        openInvites[idx].approvedPlayerIds.append(request.userId)
+        if openInvites[idx].isFull {
+            openInvites[idx].status = .full
+        }
+
+        Task {
+            do {
+                try await firestoreService.acceptDirectInvite(inviteId: invite.id, requestId: request.id, userId: request.userId)
+            } catch {
+                print("[DataService] Failed to accept direct invite: \(error)")
+            }
+        }
+    }
+
+    func declineDirectInvite(invite: OpenInvite, request: JoinRequest, note: String?) {
+        if let idx = openInvites.firstIndex(where: { $0.id == invite.id }) {
+            if let rIdx = openInvites[idx].joinRequests.firstIndex(where: { $0.id == request.id }) {
+                openInvites[idx].joinRequests[rIdx].status = .declined
+                openInvites[idx].joinRequests[rIdx].declineNote = note
+            }
+        }
+
+        Task {
+            do {
+                try await firestoreService.declineDirectInvite(inviteId: invite.id, requestId: request.id, note: note)
+            } catch {
+                print("[DataService] Failed to decline direct invite: \(error)")
+            }
+        }
+    }
+
+    func friendsLookingToPlay(excludingInvite invite: OpenInvite) -> [(User, WeekendStatus)] {
+        let existingUserIds = Set(
+            invite.approvedPlayerIds + invite.joinRequests.filter { $0.status != .declined }.map { $0.userId }
+        )
+        return visibleFriendStatuses().filter { user, status in
+            (status.availability == .lookingToPlay || status.availability == .seekingAdditional)
+            && !existingUserIds.contains(user.id)
         }
     }
 

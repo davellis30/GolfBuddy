@@ -88,6 +88,30 @@ class FirestoreService {
         return users
     }
 
+    func fetchUsersByPhoneNumbers(_ phones: [String]) async throws -> [User] {
+        guard !phones.isEmpty else { return [] }
+        var seen = Set<String>()
+        var users: [User] = []
+
+        for batchStart in stride(from: 0, to: phones.count, by: 30) {
+            let batch = Array(phones[batchStart..<min(batchStart + 30, phones.count)])
+            let snapshot = try await db.collection("users")
+                .whereField("phoneNumberNormalized", in: batch)
+                .getDocuments()
+            for doc in snapshot.documents {
+                let id = doc.documentID
+                guard !seen.contains(id) else { continue }
+                seen.insert(id)
+                var data = doc.data()
+                data["id"] = id
+                if let user = User(fromFirestore: data) {
+                    users.append(user)
+                }
+            }
+        }
+        return users
+    }
+
     func fetchUser(userId: String) async throws -> User {
         let doc = try await db.collection("users").document(userId).getDocument()
         guard var data = doc.data() else {
@@ -144,6 +168,21 @@ class FirestoreService {
     }
 
     // MARK: - Friendships
+
+    func fetchFriendIds(userId: String) async throws -> Set<String> {
+        let snapshot = try await db.collection("friendships")
+            .whereField("userIds", arrayContains: userId)
+            .getDocuments()
+        var friendIds = Set<String>()
+        for doc in snapshot.documents {
+            if let userIds = doc.data()["userIds"] as? [String] {
+                for id in userIds where id != userId {
+                    friendIds.insert(id)
+                }
+            }
+        }
+        return friendIds
+    }
 
     func fetchFriendCount(userId: String) async throws -> Int {
         let snapshot = try await db.collection("friendships")
@@ -213,6 +252,12 @@ class FirestoreService {
     }
 
     // MARK: - Open Invites
+
+    func fetchOpenInvite(inviteId: String) async throws -> OpenInvite? {
+        let doc = try await db.collection("openInvites").document(inviteId).getDocument()
+        guard let data = doc.data() else { return nil }
+        return OpenInvite(fromFirestore: data)
+    }
 
     func startOpenInvitesListener(userId: String, onChange: @escaping ([OpenInvite]) -> Void) {
         removeListener(named: "openInvites")
@@ -308,6 +353,88 @@ class FirestoreService {
 
             guard let idx = invite.joinRequests.firstIndex(where: { $0.id == requestId }) else { return nil }
             invite.joinRequests[idx].status = .declined
+
+            transaction.updateData([
+                "joinRequests": invite.joinRequests.map { $0.toFirestoreMap() }
+            ], forDocument: ref)
+            return nil
+        }
+    }
+
+    // MARK: - Direct Invites
+
+    func sendDirectInvite(inviteId: String, joinRequest: JoinRequest) async throws {
+        _ = try await db.runTransaction { transaction, errorPointer in
+            let ref = self.db.collection("openInvites").document(inviteId)
+            let doc: DocumentSnapshot
+            do {
+                doc = try transaction.getDocument(ref)
+            } catch let error as NSError {
+                errorPointer?.pointee = error
+                return nil
+            }
+            guard let data = doc.data(),
+                  let invite = OpenInvite(fromFirestore: data),
+                  invite.status == .open else { return nil }
+
+            let alreadyInvited = invite.joinRequests.contains { $0.userId == joinRequest.userId }
+            let alreadyApproved = invite.approvedPlayerIds.contains(joinRequest.userId)
+            guard !alreadyInvited && !alreadyApproved else { return nil }
+
+            var updatedRequests = invite.joinRequests
+            updatedRequests.append(joinRequest)
+            transaction.updateData([
+                "joinRequests": updatedRequests.map { $0.toFirestoreMap() }
+            ], forDocument: ref)
+            return nil
+        }
+    }
+
+    func acceptDirectInvite(inviteId: String, requestId: String, userId: String) async throws {
+        _ = try await db.runTransaction { transaction, errorPointer in
+            let ref = self.db.collection("openInvites").document(inviteId)
+            let doc: DocumentSnapshot
+            do {
+                doc = try transaction.getDocument(ref)
+            } catch let error as NSError {
+                errorPointer?.pointee = error
+                return nil
+            }
+            guard let data = doc.data(),
+                  var invite = OpenInvite(fromFirestore: data),
+                  invite.status == .open,
+                  invite.spotsRemaining > 0 else { return nil }
+
+            guard let idx = invite.joinRequests.firstIndex(where: { $0.id == requestId }) else { return nil }
+            invite.joinRequests[idx].status = .approved
+            invite.approvedPlayerIds.append(userId)
+            if invite.isFull { invite.status = .full }
+
+            transaction.updateData([
+                "joinRequests": invite.joinRequests.map { $0.toFirestoreMap() },
+                "approvedPlayerIds": invite.approvedPlayerIds,
+                "status": invite.status.rawValue
+            ], forDocument: ref)
+            return nil
+        }
+    }
+
+    func declineDirectInvite(inviteId: String, requestId: String, note: String?) async throws {
+        _ = try await db.runTransaction { transaction, errorPointer in
+            let ref = self.db.collection("openInvites").document(inviteId)
+            let doc: DocumentSnapshot
+            do {
+                doc = try transaction.getDocument(ref)
+            } catch let error as NSError {
+                errorPointer?.pointee = error
+                return nil
+            }
+            guard let data = doc.data(),
+                  var invite = OpenInvite(fromFirestore: data) else { return nil }
+
+            guard let idx = invite.joinRequests.firstIndex(where: { $0.id == requestId }) else { return nil }
+            invite.joinRequests[idx].status = .declined
+            invite.joinRequests[idx].declineNote = note
 
             transaction.updateData([
                 "joinRequests": invite.joinRequests.map { $0.toFirestoreMap() }

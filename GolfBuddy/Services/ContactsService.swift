@@ -42,7 +42,8 @@ class ContactsService {
         let keysToFetch: [CNKeyDescriptor] = [
             CNContactGivenNameKey as CNKeyDescriptor,
             CNContactFamilyNameKey as CNKeyDescriptor,
-            CNContactEmailAddressesKey as CNKeyDescriptor
+            CNContactEmailAddressesKey as CNKeyDescriptor,
+            CNContactPhoneNumbersKey as CNKeyDescriptor
         ]
 
         var results: [CNContact] = []
@@ -63,11 +64,19 @@ class ContactsService {
         let id = UUID()
         let name: String
         let email: String?
+        let phone: String?
     }
 
     func matchContacts(against users: [User]) -> (matched: [User], unmatched: [UnmatchedContact]) {
         let contacts = fetchContacts()
         let userEmailMap = Dictionary(users.map { ($0.email.lowercased(), $0) }, uniquingKeysWith: { first, _ in first })
+        let userPhoneMap = Dictionary(
+            users.compactMap { user -> (String, User)? in
+                guard let phone = user.phoneNumber, !phone.isEmpty else { return nil }
+                return (User.normalizePhoneNumber(phone), user)
+            },
+            uniquingKeysWith: { first, _ in first }
+        )
 
         var matched: [User] = []
         var matchedIds: Set<String> = []
@@ -81,8 +90,10 @@ class ContactsService {
             guard !fullName.isEmpty else { continue }
 
             let emails = contact.emailAddresses.map { $0.value as String }
+            let phones = contact.phoneNumbers.map { User.normalizePhoneNumber($0.value.stringValue) }
             var didMatch = false
 
+            // Try email match first
             for email in emails {
                 if let user = userEmailMap[email.lowercased()], !matchedIds.contains(user.id) {
                     matched.append(user)
@@ -92,10 +103,23 @@ class ContactsService {
                 }
             }
 
+            // Try phone match if no email match
+            if !didMatch {
+                for phone in phones {
+                    if let user = userPhoneMap[phone], !matchedIds.contains(user.id) {
+                        matched.append(user)
+                        matchedIds.insert(user.id)
+                        didMatch = true
+                        break
+                    }
+                }
+            }
+
             if !didMatch {
                 unmatched.append(UnmatchedContact(
                     name: fullName,
-                    email: emails.first
+                    email: emails.first,
+                    phone: contact.phoneNumbers.first?.value.stringValue
                 ))
             }
         }

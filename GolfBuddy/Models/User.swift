@@ -35,6 +35,7 @@ struct User: Identifiable, Codable, Hashable {
     var username: String
     var displayName: String
     var email: String
+    var phoneNumber: String?
     var handicap: Double?
     var homeCourse: String?
     var profilePhotoUrl: String?
@@ -75,6 +76,16 @@ struct User: Identifiable, Codable, Hashable {
         return .classicGreen
     }
 
+    /// Strips non-digit characters and prepends "1" for 10-digit US numbers.
+    /// e.g. "(312) 555-1234" → "13125551234"
+    static func normalizePhoneNumber(_ raw: String) -> String {
+        let digits = raw.filter { $0.isNumber }
+        if digits.count == 10 {
+            return "1" + digits
+        }
+        return digits
+    }
+
     static func == (lhs: User, rhs: User) -> Bool {
         lhs.id == rhs.id
     }
@@ -93,6 +104,7 @@ extension User {
         self.email = data["email"] as? String ?? ""
         self.handicap = data["handicap"] as? Double
         self.homeCourse = data["homeCourse"] as? String
+        self.phoneNumber = data["phoneNumber"] as? String
         self.profilePhotoUrl = data["profilePhotoUrl"] as? String
         self.cardColorTheme = data["cardColorTheme"] as? String
         self.statusTagline = data["statusTagline"] as? String

@@ -4,6 +4,8 @@ struct CreateInviteView: View {
     @EnvironmentObject var dataService: DataService
     @Environment(\.dismiss) private var dismiss
 
+    var prefillTimeSlot: DayTimeSlot? = nil
+
     @State private var selectedCourse: String = ""
     @State private var selectedTimeSlot: DayTimeSlot?
     @State private var groupSize: Int = 4
@@ -148,6 +150,11 @@ struct CreateInviteView: View {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button("Cancel") { dismiss() }
                         .foregroundColor(AppTheme.accentGreen)
+                }
+            }
+            .onAppear {
+                if let prefill = prefillTimeSlot {
+                    selectedTimeSlot = prefill
                 }
             }
         }
