@@ -138,6 +138,7 @@ class DataService: ObservableObject {
         playingWith: [UUID]
     ) {
         guard let currentId = currentUser?.id else { return }
+        let previousStatus = weekendStatuses[currentId]
         let status = WeekendStatus(
             userId: currentId,
             availability: availability,
@@ -147,6 +148,24 @@ class DataService: ObservableObject {
             playingWith: playingWith
         )
         weekendStatuses[currentId] = status
+
+        let inviterName = currentUser?.displayName ?? "Someone"
+
+        // Notify friends who were newly added to playingWith
+        let previousPlayingWith = Set(previousStatus?.playingWith ?? [])
+        let newlyTagged = Set(playingWith).subtracting(previousPlayingWith)
+        for friendId in newlyTagged {
+            NotificationService.shared.notifyInvitedToPlay(by: inviterName, courseName: courseName)
+        }
+
+        // Notify all friends when user creates a new "Seeking Additional Player" status
+        let wasSeeking = previousStatus?.availability == .seekingAdditional
+        if availability == .seekingAdditional && !wasSeeking && isVisible {
+            let friendIds = friendships[currentId] ?? []
+            for _ in friendIds {
+                NotificationService.shared.notifyFriendSeekingPlayer(friendName: inviterName, courseName: courseName)
+            }
+        }
     }
 
     func clearWeekendStatus() {

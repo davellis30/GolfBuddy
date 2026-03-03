@@ -8,6 +8,9 @@ struct GolfBuddyApp: App {
         WindowGroup {
             RootView()
                 .environmentObject(dataService)
+                .onAppear {
+                    NotificationService.shared.requestPermission()
+                }
         }
     }
 }
