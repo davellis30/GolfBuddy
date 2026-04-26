@@ -4,6 +4,7 @@ struct FriendsListView: View {
     @EnvironmentObject var dataService: DataService
     @State private var showAddFriend = false
     @State private var showRequests = false
+    @State private var searchText = ""
 
     var body: some View {
         NavigationStack {
@@ -12,6 +13,28 @@ struct FriendsListView: View {
 
                 ScrollView {
                     VStack(spacing: 16) {
+                        // Search bar
+                        HStack(spacing: 12) {
+                            Image(systemName: "magnifyingglass")
+                                .foregroundColor(AppTheme.mutedText)
+                            TextField("Search friends", text: $searchText)
+                                .font(AppTheme.bodyFont)
+                                .textInputAutocapitalization(.never)
+                            if !searchText.isEmpty {
+                                Button(action: { searchText = "" }) {
+                                    Image(systemName: "xmark.circle.fill")
+                                        .foregroundColor(AppTheme.mutedText)
+                                }
+                            }
+                        }
+                        .padding(14)
+                        .background(
+                            RoundedRectangle(cornerRadius: 12)
+                                .fill(Color.white)
+                                .shadow(color: Color.black.opacity(0.04), radius: 4, x: 0, y: 2)
+                        )
+                        .padding(.horizontal, 20)
+
                         // Pending requests banner
                         let pending = dataService.pendingRequestsForCurrentUser()
                         if !pending.isEmpty {
@@ -36,7 +59,7 @@ struct FriendsListView: View {
                         }
 
                         // Friends list
-                        let myFriends = currentUserFriends
+                        let myFriends = filteredFriends
                         if myFriends.isEmpty {
                             VStack(spacing: 16) {
                                 Image(systemName: "person.2.slash")
@@ -97,6 +120,16 @@ struct FriendsListView: View {
     private var currentUserFriends: [User] {
         guard let userId = dataService.currentUser?.id else { return [] }
         return dataService.friends(of: userId)
+    }
+
+    private var filteredFriends: [User] {
+        let friends = currentUserFriends
+        if searchText.isEmpty { return friends }
+        let lowered = searchText.lowercased()
+        return friends.filter {
+            $0.displayName.lowercased().contains(lowered) ||
+            $0.username.lowercased().contains(lowered)
+        }
     }
 }
 
