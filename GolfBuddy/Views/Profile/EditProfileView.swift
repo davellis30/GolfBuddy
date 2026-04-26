@@ -9,6 +9,7 @@ struct EditProfileView: View {
     @State private var selectedCourse: String = ""
     @State private var selectedPhotoItem: PhotosPickerItem?
     @State private var selectedPhotoData: Data?
+    @State private var showCoursePicker = false
 
     var body: some View {
         NavigationStack {
@@ -83,21 +84,17 @@ struct EditProfileView: View {
                                 .font(AppTheme.captionFont)
                                 .foregroundColor(AppTheme.mutedText)
 
-                            Menu {
-                                Button("None") { selectedCourse = "" }
-                                ForEach(dataService.courses) { course in
-                                    Button(course.name) { selectedCourse = course.name }
-                                }
-                            } label: {
+                            Button(action: { showCoursePicker = true }) {
                                 HStack {
                                     Image(systemName: "mappin.circle.fill")
                                         .foregroundColor(AppTheme.accentGreen)
                                         .frame(width: 20)
-                                    Text(selectedCourse.isEmpty ? "Select a course" : selectedCourse)
+                                    Text(selectedCourse.isEmpty ? "Search for a course" : selectedCourse)
                                         .font(AppTheme.bodyFont)
                                         .foregroundColor(selectedCourse.isEmpty ? AppTheme.mutedText : AppTheme.darkText)
+                                        .lineLimit(1)
                                     Spacer()
-                                    Image(systemName: "chevron.down")
+                                    Image(systemName: "magnifyingglass")
                                         .foregroundColor(AppTheme.mutedText)
                                         .font(.caption)
                                 }
@@ -149,6 +146,9 @@ struct EditProfileView: View {
                         selectedPhotoData = data
                     }
                 }
+            }
+            .sheet(isPresented: $showCoursePicker) {
+                CoursePickerView(selectedCourse: $selectedCourse)
             }
         }
     }

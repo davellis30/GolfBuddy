@@ -11,6 +11,7 @@ struct SetStatusView: View {
     @State private var selectedPlayingWith: Set<UUID> = []
     @State private var selectedTimeSlots: Set<DayTimeSlot> = []
     @State private var preferredTimeSlot: DayTimeSlot? = nil
+    @State private var showCoursePicker = false
 
     var body: some View {
         NavigationStack {
@@ -189,22 +190,16 @@ struct SetStatusView: View {
                                     .foregroundColor(AppTheme.mutedText)
                                     .tracking(1)
 
-                                Menu {
-                                    Button("None selected") { selectedCourse = "" }
-                                    ForEach(dataService.courses) { course in
-                                        Button("\(course.name) (\(course.formattedDistance))") {
-                                            selectedCourse = course.name
-                                        }
-                                    }
-                                } label: {
+                                Button(action: { showCoursePicker = true }) {
                                     HStack {
                                         Image(systemName: "mappin.circle.fill")
                                             .foregroundColor(AppTheme.accentGreen)
-                                        Text(selectedCourse.isEmpty ? "Select a course" : selectedCourse)
+                                        Text(selectedCourse.isEmpty ? "Search for a course" : selectedCourse)
                                             .font(AppTheme.bodyFont)
                                             .foregroundColor(selectedCourse.isEmpty ? AppTheme.mutedText : AppTheme.darkText)
+                                            .lineLimit(1)
                                         Spacer()
-                                        Image(systemName: "chevron.down")
+                                        Image(systemName: "magnifyingglass")
                                             .foregroundColor(AppTheme.mutedText)
                                             .font(.caption)
                                     }
@@ -283,6 +278,9 @@ struct SetStatusView: View {
                 }
             }
             .onAppear(perform: loadExisting)
+            .sheet(isPresented: $showCoursePicker) {
+                CoursePickerView(selectedCourse: $selectedCourse)
+            }
         }
     }
 
