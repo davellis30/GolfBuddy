@@ -42,9 +42,13 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
         didReceive response: UNNotificationResponse,
         withCompletionHandler completionHandler: @escaping () -> Void
     ) {
-        let identifier = response.notification.request.identifier
-        print("[AppDelegate] Notification tapped: \(identifier)")
-        // TODO: Navigate to relevant view based on notification type
+        let actionIdentifier = response.actionIdentifier
+        let categoryIdentifier = response.notification.request.content.categoryIdentifier
+
+        if categoryIdentifier == NotificationService.statusCategoryIdentifier {
+            NotificationService.shared.handleNotificationAction(actionIdentifier)
+        }
+
         completionHandler()
     }
 }
