@@ -11,11 +11,14 @@ class TeeTimeSearchService: ObservableObject {
     @Published var searchState: SearchState = .idle
     @Published var results: [TeeTimeSearchResult] = []
     @Published var favoriteCourseIds: Set<String> = []
+    /// Inventory source from the last search ("mock", "lightspeed", ...).
+    /// Nil when the mock provider is in use.
+    @Published var inventorySource: String?
 
     private let provider: TeeTimeProvider
     private static let favoritesKey = "favoriteCourseIds"
 
-    init(provider: TeeTimeProvider = MockTeeTimeProvider()) {
+    init(provider: TeeTimeProvider = APITeeTimeProvider()) {
         self.provider = provider
         loadFavorites()
     }
@@ -24,13 +27,17 @@ class TeeTimeSearchService: ObservableObject {
     func search(request: TeeTimeSearchRequest) async {
         searchState = .searching
         results = []
+        inventorySource = nil
 
         do {
             let searchResults = try await provider.searchTeeTimes(request: request)
             results = searchResults
+            inventorySource = (provider as? APITeeTimeProvider)?.providerName
             searchState = .results
         } catch {
-            searchState = .error("Search failed. Please try again.")
+            let message = (error as? LocalizedError)?.errorDescription
+                ?? "Search failed. Please try again."
+            searchState = .error(message)
         }
     }
 

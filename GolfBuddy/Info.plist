@@ -67,5 +67,10 @@
     <string>GolfBuddy needs access to your photo library to let you choose a profile picture.</string>
     <key>NSLocationWhenInUseUsageDescription</key>
     <string>GolfBuddy uses your location to show golf courses near you.</string>
+    <!-- Base URL of the deployed CalendarCaddy `api` Cloud Function, e.g.
+         https://us-central1-myproject.cloudfunctions.net/api
+         Set this after running: cd functions && npm run deploy -->
+    <key>CalendarCaddyAPIBaseURL</key>
+    <string></string>
 </dict>
 </plist>
