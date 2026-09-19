@@ -33,13 +33,16 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.onWeekendStatusWritten = exports.onMessageCreated = exports.onFriendRequestAccepted = exports.onFriendRequestCreated = void 0;
+exports.onOpenInviteUpdated = exports.onWeekendStatusWritten = exports.onMessageCreated = exports.onFriendRequestAccepted = exports.onFriendRequestCreated = exports.api = void 0;
 const admin = __importStar(require("firebase-admin"));
 const firestore_1 = require("firebase-functions/v2/firestore");
 const firestore_2 = require("firebase-functions/v2/firestore");
 const firestore_3 = require("firebase-functions/v2/firestore");
 admin.initializeApp();
 const db = admin.firestore();
+// --- Public API (v1): shared by the iOS app and the Muse connector ---
+var api_1 = require("./api");
+Object.defineProperty(exports, "api", { enumerable: true, get: function () { return api_1.api; } });
 async function sendPushNotification(recipientUserId, title, body, data, notificationType) {
     const userDoc = await db.collection("users").doc(recipientUserId).get();
     if (!userDoc.exists)
@@ -59,6 +62,8 @@ async function sendPushNotification(recipientUserId, title, body, data, notifica
         if (notificationType === "statusChange" && prefs.statusChanges === false) {
             return;
         }
+        if (notificationType === "invite" && prefs.invites === false)
+            return;
     }
     try {
         await admin.messaging().send({
@@ -199,6 +204,35 @@ exports.onWeekendStatusWritten = (0, firestore_3.onDocumentWritten)("weekendStat
         type: "statusChange",
         statusUserId: userId,
     }, "statusChange"));
+    await Promise.all(notifications);
+});
+// --- Trigger: Direct Invite Sent ---
+exports.onOpenInviteUpdated = (0, firestore_2.onDocumentUpdated)("openInvites/{inviteId}", async (event) => {
+    var _a, _b;
+    const before = (_a = event.data) === null || _a === void 0 ? void 0 : _a.before.data();
+    const after = (_b = event.data) === null || _b === void 0 ? void 0 : _b.after.data();
+    if (!before || !after)
+        return;
+    const beforeRequests = (before.joinRequests || []);
+    const afterRequests = (after.joinRequests || []);
+    // Find newly added direct invites
+    const beforeIds = new Set(beforeRequests.map((r) => r.id));
+    const newDirectInvites = afterRequests.filter((r) => !beforeIds.has(r.id) && r.isDirectInvite === true);
+    if (newDirectInvites.length === 0)
+        return;
+    const creatorId = after.creatorId;
+    const courseName = after.courseName;
+    const timeSlot = after.timeSlot;
+    const timeLabel = `${timeSlot.day === "saturday" ? "Sat" : "Sun"} ${timeSlot.time === "am" ? "AM" : "PM"}`;
+    // Look up creator's display name
+    const creatorDoc = await db.collection("users").doc(creatorId).get();
+    const creatorName = creatorDoc.exists
+        ? creatorDoc.data().displayName || "Someone"
+        : "Someone";
+    const notifications = newDirectInvites.map((invite) => sendPushNotification(invite.userId, "You're Invited to Play!", `${creatorName} invited you to play at ${courseName} - ${timeLabel}`, {
+        type: "directInvite",
+        inviteId: event.params.inviteId,
+    }, "invite"));
     await Promise.all(notifications);
 });
 //# sourceMappingURL=index.js.map

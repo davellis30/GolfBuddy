@@ -6,6 +6,9 @@ import {onDocumentWritten} from "firebase-functions/v2/firestore";
 admin.initializeApp();
 const db = admin.firestore();
 
+// --- Public API (v1): shared by the iOS app and the Muse connector ---
+export {api} from "./api";
+
 // --- Helper ---
 
 interface UserDoc {

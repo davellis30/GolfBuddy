@@ -39,6 +39,21 @@ GolfBuddy/
 - **Build**: Cmd+B in Xcode
 - **Run**: Cmd+R in Xcode (Simulator or device)
 
+## CalendarCaddy API (v1)
+
+The shared backend for the iOS app and the Muse connector, in `functions/`:
+
+- `functions/src/api.ts` — single HTTPS Cloud Function (`api`) with routes:
+  `GET /health`, `POST /v1/teetimes/search`, `GET /v1/friends/looking`
+- `functions/src/teetimes.ts` — `TeeTimeProvider` abstraction (mirrors the iOS
+  protocol). `MockTeeTimeProvider` is active until the Lightspeed partnership
+  is signed; `LightspeedTeeTimeProvider` is the drop-in (auto-selected when
+  `LIGHTSPEED_CLIENT_ID`/`LIGHTSPEED_CLIENT_SECRET` are set).
+- Auth: Firebase ID token (`Authorization: Bearer`) or service API key
+  (`X-API-Key` = `CALENDARCADDY_SERVICE_KEY`) for server-to-server callers.
+- Full contract: `docs/calendarcaddy-api.yaml` (OpenAPI 3.0).
+- Deploy: `cd functions && npm run deploy` (Firebase).
+
 ## Code Style
 
 - SwiftUI with MVVM pattern

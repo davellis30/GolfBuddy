@@ -1,0 +1,243 @@
+openapi: 3.0.3
+info:
+  title: CalendarCaddy API
+  version: 1.0.0
+  description: |
+    The single backend shared by the CalendarCaddy iOS app (client #1) and the
+    Muse connector (client #2). Deployed as the `api` HTTPS Cloud Function.
+
+    Tee-time inventory is served through a provider abstraction. The active
+    provider today is `mock` (deterministic, clearly labeled in every
+    response). The `lightspeed` provider (Lightspeed Golf Partner API v2)
+    activates automatically once partnership credentials are configured, and
+    booking endpoints (hold / book / cancel) ship with it — they are
+    documented below as planned so clients can build against the shape now.
+servers:
+  - url: https://us-central1-calendarcaddy.cloudfunctions.net/api
+    description: Production (replace with your Firebase project region/name)
+
+security:
+  - firebaseAuth: []
+  - serviceKey: []
+
+paths:
+  /health:
+    get:
+      summary: Service health check
+      security: []
+      responses:
+        '200':
+          description: Service is up
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: {type: boolean}
+                  service: {type: string}
+                  version: {type: string}
+
+  /v1/teetimes/search:
+    post:
+      summary: Search tee-time availability across courses
+      description: |
+        Returns available tee times per course for a date and time window.
+        `provider` in the response names the inventory source (`mock` until a
+        vendor partnership is live) — clients must surface this honestly and
+        never present mock results as bookable.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TeeTimeSearchRequest'
+      responses:
+        '200':
+          description: Availability results
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [provider, searchedAt, results]
+                properties:
+                  provider:
+                    type: string
+                    description: Inventory source, e.g. "mock" or "lightspeed"
+                  searchedAt: {type: string, format: date-time}
+                  results:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/CourseTeeTimeResult'
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+
+  /v1/friends/looking:
+    get:
+      summary: Friends looking to play this weekend
+      description: |
+        Returns friends of the caller whose weekend status is visible and set
+        to "Looking to Play" or "Seeking an Additional Player" for the coming
+        weekend. Powers the "find friends that are looking" feature in both
+        the app and the Muse connector.
+      parameters:
+        - name: userId
+          in: query
+          required: false
+          description: >
+            Required only for service-key callers, who act on behalf of a
+            named user. Ignored for Firebase-authenticated callers.
+          schema: {type: string}
+      responses:
+        '200':
+          description: Friends looking to play
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [userId, count, friends]
+                properties:
+                  userId: {type: string}
+                  count: {type: integer}
+                  friends:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/LookingFriend'
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+
+  # ------------------------------------------------------------------
+  # Planned endpoints — shape reserved now, implemented with the first
+  # live vendor integration (Lightspeed Partner API v2).
+  # ------------------------------------------------------------------
+  /v1/teetimes/holds:
+    post:
+      summary: (Planned) Hold a tee time before booking
+      description: Creates a short-lived hold via the vendor's reservation_requests flow.
+      responses:
+        '501':
+          description: Not implemented until a live provider is configured
+  /v1/teetimes/bookings:
+    post:
+      summary: (Planned) Book a held tee time
+      description: Completes a booking via the vendor's reservations flow.
+      responses:
+        '501':
+          description: Not implemented until a live provider is configured
+  /v1/teetimes/bookings/{bookingId}:
+    delete:
+      summary: (Planned) Cancel a booking
+      parameters:
+        - name: bookingId
+          in: path
+          required: true
+          schema: {type: string}
+      responses:
+        '501':
+          description: Not implemented until a live provider is configured
+
+components:
+  securitySchemes:
+    firebaseAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: Firebase ID token
+      description: Firebase Auth ID token for the end user (iOS app).
+    serviceKey:
+      type: apiKey
+      in: header
+      name: X-API-Key
+      description: >
+        Service key for trusted server-to-server callers (e.g. the Muse
+        connector). Set CALENDARCADDY_SERVICE_KEY in Functions config.
+
+  schemas:
+    TeeTimeSearchRequest:
+      type: object
+      required: [courses, date, earliestTime, latestTime, players]
+      properties:
+        courses:
+          type: array
+          maxItems: 20
+          items:
+            type: object
+            required: [id, name]
+            properties:
+              id: {type: string}
+              name: {type: string}
+              holes: {type: integer, default: 18}
+        date:
+          type: string
+          format: date
+          example: '2026-09-26'
+        earliestTime:
+          type: string
+          example: '07:00'
+          description: HH:MM 24h, course-local
+        latestTime:
+          type: string
+          example: '13:00'
+          description: HH:MM 24h, course-local
+        players:
+          type: integer
+          minimum: 1
+          maximum: 4
+
+    TeeTime:
+      type: object
+      required: [id, courseId, courseName, date, availableSlots, pricePerPlayer, holes, isHotDeal]
+      properties:
+        id: {type: string}
+        courseId: {type: string}
+        courseName: {type: string}
+        date: {type: string, format: date-time, description: ISO 8601 with UTC offset}
+        availableSlots: {type: integer}
+        pricePerPlayer: {type: number}
+        holes: {type: integer, enum: [9, 18]}
+        isHotDeal: {type: boolean}
+
+    CourseTeeTimeResult:
+      type: object
+      required: [courseId, courseName, teeTimes]
+      properties:
+        courseId: {type: string}
+        courseName: {type: string}
+        teeTimes:
+          type: array
+          items: {$ref: '#/components/schemas/TeeTime'}
+
+    LookingFriend:
+      type: object
+      required: [userId, displayName, availability, timeSlots, weekendDate]
+      properties:
+        userId: {type: string}
+        displayName: {type: string}
+        availability:
+          type: string
+          enum: ['Looking to Play', 'Seeking an Additional Player']
+        courseName: {type: string, nullable: true}
+        timeSlots:
+          type: array
+          items:
+            type: object
+            properties:
+              day: {type: string, enum: [saturday, sunday]}
+              time: {type: string, enum: [am, pm]}
+        weekendDate: {type: string, format: date-time}
+
+  responses:
+    BadRequest:
+      description: Invalid request
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error: {type: string}
+    Unauthorized:
+      description: Missing or invalid credentials
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error: {type: string}
